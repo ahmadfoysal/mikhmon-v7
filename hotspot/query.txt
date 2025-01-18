@@ -1,0 +1,120 @@
+{
+:local dateint do= \
+{
+:local days [ :pick $d 8 10 ]; \ 
+:local month [ :pick $d 5 7 ]; \
+:local year [ :pick $d 0 4 ]; \ 
+:return [:tonum ("$year$month$days")];
+};
+:local date [ /system clock get date ];
+:local today [$dateint d=$date] ;
+:put ( $today )
+}
+
+
+
+:local timeint do= \
+{ \
+    :local hours [ :pick $t 0 2 ];\
+    :local minutes [ :pick $t 3 5 ]; \
+    :return ($hours * 60 + $minutes) ; \ 
+}; \
+:local time [ /system clock get time ]; \
+:local curtime [$timeint t=$time] ; \
+:put ($curtime)
+#this will disconnect profile users
+{
+:local dateint do= \
+{
+:local days [ :pick $d 8 10 ]; \ 
+:local month [ :pick $d 5 7 ]; \
+:local year [ :pick $d 0 4 ]; \ 
+:return [:tonum ("$year$month$days")];
+};
+
+:local timeint do= \
+{ \
+    :local hours [ :pick $t 0 2 ];\
+    :local minutes [ :pick $t 3 5 ]; \
+    :return ($hours * 60 + $minutes) ; \ 
+}; 
+:local date [ /system clock get date ]; \
+:local time [ /system clock get time ]; \
+:local today [$dateint d=$date] ; \
+:local curtime [$timeint t=$time] ; \
+:foreach i in [ /ip hotspot user find where profile="3M_MOS_64" ] do= \
+    { \
+    :local comment [ /ip hotspot user get $i comment]; \
+    :local name [ /ip hotspot user get $i name]; \
+    :put ($comment ); \
+    :local gettime [:pick $comment 11 20]; \
+    :local getdate [:pick $comment 0 10]; \
+    :local expd [$dateint d=$getdate] ; \
+    :local expt [$timeint t=$gettime] ; 
+    :put ($expd); \
+    :put ($expt); \
+    :if (($expd < $today and $expt < $curtime) or ($expd < $today and $expt > $curtime) or ($expd = $today and $expt < $curtime)) do={
+        [ /ip hotspot user remove $i ]; 
+        [ /ip hotspot active remove [find where user=$name] ];
+    }
+    }
+
+ }
+
+
+ #onlogin test
+ {
+  :local date [ /system clock get date ]; \
+  :local year [ :pick $date 0 4 ]; \
+  :local month [ :pick $date 5 7 ]; \
+  :local comment [ /ip hotspot user get [/ip hotspot user find where name="01738252"] comment]; \
+  :local ucode [:pic $comment 0 2]; \
+  :if ($ucode = "vc" or $ucode = "up" or $comment = "20" or $comment = "") do= \
+  {
+    #:put ($comment)
+    #/sys sch add name="01738252" disable=no start-date=$date interval="03m"; \
+    #:delay 2s; \
+    :local exp [ /sys sch get [ /sys sch find where name="01738252" ] next-run];  \
+    :put ($exp);
+    :local getxp [len $exp]; \
+    :put ($getxp); \
+    :local gettime [:pick $exp 11 19]; \
+    :local getdate [:pick $exp 0 10]; \
+    :put ($gettime); \
+    :put ($getdate);
+  }
+ }   
+
+
+ #hotspot active users
+ :foreach i in [ /ip hotspot  user find where profile="3MIN_MOS_64" ] do= \
+ {
+
+
+ }
+
+ :foreach i in=[/ip hotspot active find user="01493756"] do=\ 
+ {
+    :local comment [ /ip hotspot active get $i comment]; \
+    :local getxp [len $comment]; \
+    :put ($comment)
+    }
+ :foreach i in [ /ip hotspot  user find where profile="3MIN_64_MOS" ] do= \
+    { 
+    :local comment [ /ip hotspot user get $i comment]; \
+    :local getxp [len $comment]; \
+    #:put ($comment)
+    :if ($getxp > 17) do=\
+    {
+    :put ($comment)
+    }
+    };
+
+    /ip hotspot active set comment="2024-01-14 14:56:51" [find where user="01493756"]
+
+
+
+    :local dateint do={:local days [ :pick $d 8 10 ]; :local month [ :pick $d 5 7 ];:local year [ :pick $d 0 4 ];:return [:tonum ("$year$month$days")];};:local timeint do={:local hours [ :pick $t 0 2 ];:local minutes [ :pick $t 3 5 ];:return ($hours * 60 + $minutes);};:local date [ /system clock get date ];:local time [ /system clock get time ];:local today [$dateint d=$date];:local curtime [$timeint t=$time];:foreach i in [ /ip hotspot user find where profile="3MIN_64_MOS" ] do={ :local comment [ /ip hotspot user get $i comment]; :local getxp [len $comment]; :if ($getxp > 17) do={ :local name [ /ip hotspot user get $i name]; :local gettime [:pick $comment 11 19];:local getdate [:pick $comment 0 10];:local expd [$dateint d=$getdate] ; :local expt [$timeint t=$gettime] ;:if (($expd < $today and $expt < $curtime) or ($expd < $today and $expt > $curtime) or ($expd = $today and $expt < $curtime)) do={ [ /ip hotspot user remove $i ]; [ /ip hotspot active remove [find where user=$name] ];}}};
+
+    #server list
+    /ip/hotspot/print
