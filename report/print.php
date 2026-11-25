@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/../include/bootstrap.php');
 // hide all error
 error_reporting(0);
 if (!isset($_SESSION["mikhmon"])) {
@@ -68,29 +68,11 @@ if (!isset($_SESSION["mikhmon"])) {
 	if (isset($remdata)) {
 		if (strlen($idhr) > "0") {
 			if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
-				$API->write('/system/script/print', false);
-				$API->write('?source=' . $idhr . '', false);
-				$API->write('=.proplist=.id');
-				$ARREMD = $API->read();
-				for ($i = 0; $i < count($ARREMD); $i++) {
-					$API->write('/system/script/remove', false);
-					$API->write('=.id=' . $ARREMD[$i]['.id']);
-					$READ = $API->read();
-
-				}
+				mkl_report_remove($API, 'day', $idhr);
 			}
 		} elseif (strlen($idbl) > "0") {
 			if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
-				$API->write('/system/script/print', false);
-				$API->write('?owner=' . $idbl . '', false);
-				$API->write('=.proplist=.id');
-				$ARREMD = $API->read();
-				for ($i = 0; $i < count($ARREMD); $i++) {
-					$API->write('/system/script/remove', false);
-					$API->write('=.id=' . $ARREMD[$i]['.id']);
-					$READ = $API->read();
-
-				}
+				mkl_report_remove($API, 'month', $idbl);
 			}
 
 		}
@@ -106,9 +88,7 @@ if (!isset($_SESSION["mikhmon"])) {
 	}
 	if (strlen($idhr) > "0") {
 		if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
-			$getData = $API->comm("/system/script/print", array(
-				"?source" => "$idhr",
-			));
+			$getData = mkl_report_fetch($API, 'day', $idhr);
 			$TotalReg = count($getData);
 		}
 		$filedownload = $idhr;
@@ -116,9 +96,7 @@ if (!isset($_SESSION["mikhmon"])) {
 		$shd = "inline-block";
 	} elseif (strlen($idbl) > "0") {
 		if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
-			$getData = $API->comm("/system/script/print", array(
-				"?owner" => "$idbl",
-			));
+			$getData = mkl_report_fetch($API, 'month', $idbl);
 			$TotalReg = count($getData);
 		}
 		$filedownload = $idbl;
@@ -126,9 +104,7 @@ if (!isset($_SESSION["mikhmon"])) {
 		$shd = "inline-block";
 	} elseif ($idhr == "" || $idbl == "") {
 		if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
-			$getData = $API->comm("/system/script/print", array(
-				"?comment" => "mikhmon",
-			));
+			$getData = mkl_report_fetch($API, 'all', '');
 			$TotalReg = count($getData);
 		}
 		$filedownload = "all";
@@ -136,9 +112,7 @@ if (!isset($_SESSION["mikhmon"])) {
 		$shd = "none";
 	} elseif (strlen($idbl) > "0" ) {
 		if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
-			$getData = $API->comm("/system/script/print", array(
-				"?owner" => "$idbl",
-			));
+			$getData = mkl_report_fetch($API, 'month', $idbl);
 			$TotalReg = count($getData);
 		}
 		$filedownload = $idbl;

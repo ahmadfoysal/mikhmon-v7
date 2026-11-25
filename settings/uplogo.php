@@ -23,73 +23,17 @@ if (!isset($_SESSION["mikhmon"])) {
 } else {
 
   if (isset($_POST["submit"])) {
-    $logo_dir = "./img/";
-    $logo_file = $logo_dir . basename($_FILES["UploadLogo"]["name"]);
-    $uploadOk = 1;
-    $imageFileType = strtolower(pathinfo($logo_file, PATHINFO_EXTENSION));
-
-// Check if image file is a actual image or fake image
-
-    $check = getimagesize($_FILES["UploadLogo"]["tmp_name"]);
-    if ($check !== false) {
-      if ($currency == in_array($currency, $cekindo['indo'])) {
-        $galat = '<div class="box bg-danger"></i> Alert!<br> File name is : ' . basename($_FILES["UploadLogo"]["name"]) . '. </div>';
-      } else {
-        $galat = '<div class="box bg-danger"></i> Alert!<br> File name is : ' . basename($_FILES["UploadLogo"]["name"]) . '. </div>';
-      }
-      $uploadOk = 1;
-    } else {
-      if ($currency == in_array($currency, $cekindo['indo'])) {
-        $galat = '<div class="box bg-danger"></i> Alert!<br>  File bukan gambar. </div>';
-      } else {
-        $galat = '<div class="box bg-danger"></i> Alert!<br>  File is not an image. </div>';
-      }
-      $uploadOk = 0;
-    }
-
-
-// Check file size
-    if ($_FILES["UploadLogo"]["size"] > 2000000) {
-      if ($currency == in_array($currency, $cekindo['indo'])) {
-        $galat = '<div class="box bg-danger"></i> Alert!<br>  Ukuran file terlalu besar. </div>';
-      } else {
-        $galat = '<div class="box bg-danger"></i> Alert!<br> File is too large. </div>';
-      }
-      $uploadOk = 0;
-    }
-// Allow certain file formats
-    if (basename($_FILES["UploadLogo"]["name"] != "logo-" . $session . ".png")) {
-      if ($currency == in_array($currency, $cekindo['indo'])) {
-        $galat = '<div class="box bg-danger"></i> Alert!<br>  Hanya bisa upload logo-' . $session . '.png. </div>';
-      } else {
-        $galat = '<div class="box bg-danger"></i> Alert!<br>  Only logo-' . $session . '.png are allowed. </div>';
-      }
-      $uploadOk = 0;
-    }
-// Check if $uploadOk is set to 0 by an error
-    if ($uploadOk == 0) {
-      if ($currency == in_array($currency, $cekindo['indo'])) {
-        $galat = '<div class="box bg-danger"></i> Alert!<br>  File tidak diupload. Nama file harus logo-'.$session.'.png</div>';
-      } else {
-        $galat = '<div class="box bg-danger"></i> Alert!<br>  File was not uploaded. File name must be  logo-'.$session.'.png</div>';
-      }
-    
-// if everything is ok, try to upload file
-    } else {
-      if (move_uploaded_file($_FILES["UploadLogo"]["tmp_name"], $logo_file)) {
-        if ($currency == in_array($currency, $cekindo['indo'])) {
-          $galat = '<div class="box bg-success"></i> Alert!<br>  Success!</h5> File ' . basename($_FILES["UploadLogo"]["name"]) . ' telah diupload. </div>';
-        } else {
-          $galat = '<div class="box bg-success"></i> Alert!<br>  Success!</h5> The File ' . basename($_FILES["UploadLogo"]["name"]) . ' has been uploaded. </div>';
+    // the logo is stored in the data folder of this customer as logo-<session>.png
+    $galat = '<div class="box bg-danger"></i> Alert!<br> File was not uploaded. Please choose a PNG image smaller than 2 MB.</div>';
+    $mkltmp = isset($_FILES["UploadLogo"]["tmp_name"]) ? $_FILES["UploadLogo"]["tmp_name"] : "";
+    if ($mkltmp != "" && is_uploaded_file($mkltmp) && $_FILES["UploadLogo"]["size"] <= 2000000 && mkl_routers() && mkl_router($session)['exists']) {
+      $check = getimagesize($mkltmp);
+      if ($check !== false && $check[2] == IMAGETYPE_PNG) {
+        if (move_uploaded_file($mkltmp, mkl_logo_file($session))) {
+          $galat = '<div class="box bg-success"></i> Success!<br> The logo has been uploaded.</div>';
         }
-
       } else {
-        if ($currency == in_array($currency, $cekindo['indo'])) {
-          $galat = '<div class="box bg-danger"></i> Alert!<br>  Terjadi masalah ketika upload file. Nama file harus logo-'.$session.'.png </div>';
-        } else {
-          $galat = '<div class="box bg-danger"></i> Alert!<br>  There was an error uploading your file. File name must be  logo-'.$session.'.png </div>';
-        }
-
+        $galat = '<div class="box bg-danger"></i> Alert!<br> Only PNG images are allowed.</div>';
       }
     }
 //echo "<script>window.location='./admin.php?id=uplogo&session=".$session."'</script>";
@@ -107,7 +51,7 @@ if (!isset($_SESSION["mikhmon"])) {
     <?= $galat; ?>
       <form action="" method="post" enctype="multipart/form-data">
 
-          <div class="pd-10"><?= $_format_file_name ?> : logo-<?= $session; ?>.png </div>
+          <div class="pd-10">PNG, max 2 MB (<?= htmlspecialchars($session); ?>)</div>
           <div class="input-group">
             <div class="input-group-4 col-box-8">
                 <input style="cursor: pointer; " type="file" class="group-item group-item-l" name="UploadLogo" >
@@ -128,33 +72,18 @@ if (!isset($_SESSION["mikhmon"])) {
       </thead>
       <tbody>
         <?php
-        $dir = "./img";
-      // Open a directory, and read its contents
-        if (is_dir($dir)) {
-          if ($dh = opendir($dir)) {
-            while (($file = readdir($dh)) !== false) {
-              if ($file != "." && $file != "..") {
-                if (substr($file, 0, 5) != "logo-" ||
-                  substr($file, -5) == ".html" ||
-                  substr($file, -4) == ".php" ||
-                  substr($file, -4) == ".jpg" ||
-                  substr($file, -4) == ".bak") {
-                } else { ?>
-              
+        foreach (mkl_routers() as $mklname => $mklr) {
+          if (is_file(mkl_logo_file($mklname))) {
+            $file = "logo-" . $mklname . ".png";
+            $mklurl = mkl_logo_url($mklname); ?>
               <tr>
-                <td><a href="javascript:window.open('./img/<?= $file; ?>','_blank','width=300,height=300')"><img height="30px" src="./img/<?= $file; ?>" title="Open <?= $file; ?>"></a><br><span><?= $file; ?></span></td>
-                <td><a class="btn bg-danger" href="javascript:void(0)" onclick="if(confirm('Sure to delete <?= $file; ?> ?')){window.location='./admin.php?id=remove-logo&logo=<?= $file; ?>&session=<?= $session ?>'}else{}"><i class="fa fa-trash"></i> <?= $_delete ?></a>
+                <td><a href="javascript:window.open('<?= $mklurl; ?>','_blank','width=300,height=300')"><img height="30px" src="<?= $mklurl; ?>" title="Open <?= $file; ?>"></a><br><span><?= $file; ?></span></td>
+                <td><a class="btn bg-danger" href="javascript:void(0)" onclick="if(confirm('Sure to delete <?= $file; ?> ?')){window.location='./admin.php?id=remove-logo&logo=<?= $file; ?>&session=<?= $session ?>'}else{}"><i class="fa fa-trash"></i></a>
                 </td>
               </tr>
-              
-          <?php 
-        }
-      }
-    }
-    closedir($dh);
-  }
-}
-?>
+<?php
+          }
+        } ?>
       </tbody>
     </table>
   </div>

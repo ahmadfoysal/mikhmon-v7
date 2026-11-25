@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/../include/bootstrap.php');
 // hide all error
 error_reporting(0);
 if (!isset($_SESSION["mikhmon"])) {
@@ -26,10 +26,10 @@ if (!isset($_SESSION["mikhmon"])) {
 
 // load config
   include('../include/config.php');
-  $iphost = explode('!', $data[$session][1])[1];
-  $userhost = explode('@|@', $data[$session][2])[1];
-  $passwdhost = explode('#|#', $data[$session][3])[1];
-  $curency = explode('&', $data[$session][6])[1];
+  $iphost = mkl_router($session)['host'];
+  $userhost = mkl_router($session)['user'];
+  $passwdhost = encrypt(mkl_router($session)['pass_plain']);
+  $curency = mkl_router($session)['currency'];
 
 // lang
 include('../include/lang.php');

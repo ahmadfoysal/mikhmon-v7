@@ -48,6 +48,7 @@ $_grace_period = "Biyayang panahon";
 $_help = "Tulong";
 $_hosts = "Mga host";
 $_hotspot_active = "Actibong Hotspot";
+$_hotspot_server = "Hotspot Server";
 $_hotspot_cookies = "Mga Cookies";
 $_hotspot_log = "Hotspot Log";
 $_hotspot_name = "Hotspot Name";

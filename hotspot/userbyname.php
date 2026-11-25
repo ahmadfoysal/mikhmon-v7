@@ -17,7 +17,7 @@
  */
 
 // hide all error
-error_reporting(1);
+error_reporting(0);
 
 if (!isset($_SESSION["mikhmon"])) {
   header("Location:../admin.php?id=login");
@@ -48,13 +48,13 @@ if (!isset($_SESSION["mikhmon"])) {
   $upass = $userdetails['password'];
   $umac = $userdetails['mac-address'];
   $uprofile = $userdetails['profile'];
-  $uuptime = $userdetails['uptime'];
+  $uuptime = formatDTM($userdetails['uptime']);
   $ueduser = $userdetails['disabled'];
   $utimelimit = $userdetails['limit-uptime'];
   $udatalimit = $userdetails['limit-bytes-total'];
   $ubytesout = $userdetails['bytes-out'];
   $ubytesin = $userdetails['bytes-in'];
-  $ucomment = $userdetails['comment'];
+  $ucomment = mkl_comment_legacy($userdetails['comment']);
   
 
   if (substr(formatBytes2($udatalimit, 2), -2) == "MB") {
@@ -131,16 +131,16 @@ if (!isset($_SESSION["mikhmon"])) {
   
   if($getsprice == "" && $getprice != ""){
     if ($currency == in_array($currency, $cekindo['indo'])) {
-      $waprice = $_price." : *" . $currency . " " . number_format($getprice, 0, ",", ".") . "* %0A";
+      $waprice = $_price." : *" . $currency . " " . number_format((float)$getprice, 0, ",", ".") . "* %0A";
     } else {
-      $waprice = $_price . " : *" . $currency . " " . number_format($getprice) . "* %0A";
+      $waprice = $_price . " : *" . $currency . " " . number_format((float)$getprice) . "* %0A";
     }
     $btprice = $getprice;
   }else if($getsprice != ""){
     if ($currency == in_array($currency, $cekindo['indo'])) {
-      $waprice = $_price." : *" . $currency . " " . number_format($getsprice, 0, ",", ".") . "* %0A";
+      $waprice = $_price." : *" . $currency . " " . number_format((float)$getsprice, 0, ",", ".") . "* %0A";
     } else {
-      $waprice = $_price . " : *" . $currency . " " . number_format($getsprice) . "* %0A";
+      $waprice = $_price . " : *" . $currency . " " . number_format((float)$getsprice) . "* %0A";
     }
     $btprice = $getsprice;
   }else if ($getsprice == "") {
@@ -190,7 +190,7 @@ include('./include/quickbt.php');
 
 
 if ($currency == in_array($currency, $cekindo['indo'])) {
-  $pricebt = $currency . " " . number_format($btprice, 0, ",", ".");
+  $pricebt = $currency . " " . number_format((float)$btprice, 0, ",", ".");
   if (substr($getvalid, -1) == "d") {
     $validity = substr($getvalid, 0, -1) . "Hari";
   } else if (substr($getvalid, -1) == "h") {
@@ -208,7 +208,7 @@ if ($currency == in_array($currency, $cekindo['indo'])) {
     $timelimit = (substr($utimelimit, 0, -1) * 7) . "Hari";
   }
   } else {
-    $pricebt = $currency . " " . number_format($btprice);
+    $pricebt = $currency . " " . number_format((float)$btprice);
     $timelimit = $utimelimit;
     $validity = $getvalid;
   }
@@ -424,9 +424,9 @@ include('./voucher/printbt.php');
     <td class="align-middle"><?= $_price ?></td><td><input class="form-control" id="price" type="text" value="<?php if ($getprice == 0) {
       } else {
         if ($currency == in_array($currency, $cekindo['indo'])) {
-          echo $currency . " " . number_format($getprice, 0, ",", ".");
+          echo $currency . " " . number_format((float)$getprice, 0, ",", ".");
         } else {
-          echo $currency . " " . number_format($getprice);
+          echo $currency . " " . number_format((float)$getprice);
         }
       } ?>" disabled></td>
   </tr>
@@ -434,9 +434,9 @@ include('./voucher/printbt.php');
     <td class="align-middle"><?= $_selling_price ?></td><td><input class="form-control" id="price" type="text" value="<?php if ($getprice == 0) {
       } else {
         if ($currency == in_array($currency, $cekindo['indo'])) {
-          echo $currency . " " . number_format($getsprice, 0, ",", ".");
+          echo $currency . " " . number_format((float)$getsprice, 0, ",", ".");
         } else {
-          echo $currency . " " . number_format($getsprice);
+          echo $currency . " " . number_format((float)$getsprice);
         }
       } ?>" disabled></td>
   </tr>

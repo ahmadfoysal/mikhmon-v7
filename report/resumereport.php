@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/../include/bootstrap.php');
 // hide all error
 error_reporting(0);
 if (!isset($_SESSION["mikhmon"])) {
@@ -54,7 +54,7 @@ function resume_per_day($date){
 $evalue =  explode($date,$_SESSION['dataresume']);
 $x = count($evalue);
 			for ($i = 0; $i < $x; $i++) {
-				$result += $evalue[$i];
+				$result += (int) $evalue[$i];
 			}
 			return ($x-1).'/'.$result;
 }
@@ -64,10 +64,10 @@ $totalincome = explode("/",$_SESSION['totalresume'])[1];
 
 
 if ($currency == in_array($currency, $cekindo['indo'])) {
-  $totalreport = "Total " . $totalvrc . "vcr : " . $currency . " " . number_format($totalincome, 0, ",", ".");
+  $totalreport = "Total " . $totalvrc . "vcr : " . $currency . " " . number_format((float)$totalincome, 0, ",", ".");
 
 } else {
-  $totalreport = "Total " . $totalvrc . "vcr : " . $currency . " " . number_format($totalincome, 2);
+  $totalreport = "Total " . $totalvrc . "vcr : " . $currency . " " . number_format((float)$totalincome, 2);
 }
 
 

@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/../include/bootstrap.php');
 // hide all error
 error_reporting(0);
 if (!isset($_SESSION["mikhmon"])) {
@@ -29,9 +29,7 @@ if (!isset($_SESSION["mikhmon"])) {
 
 	if (strlen($idhr) > "0") {
 		if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
-			$API->write('/system/script/print', false);
-			$API->write('?=source=' . $idhr . '');
-			$ARRAY = $API->read();
+			$ARRAY = mkl_report_fetch($API, 'day', $idhr);
 			$API->disconnect();
 		}
 		$filedownload = $idhr;
@@ -39,9 +37,7 @@ if (!isset($_SESSION["mikhmon"])) {
 		$shd = "text";
 	} elseif (strlen($idbl) > "0") {
 		if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
-			$API->write('/system/script/print', false);
-			$API->write('?=owner=' . $idbl . '');
-			$ARRAY = $API->read();
+			$ARRAY = mkl_report_fetch($API, 'month', $idbl);
 			$API->disconnect();
 		}
 		$filedownload = $idbl;
@@ -49,9 +45,7 @@ if (!isset($_SESSION["mikhmon"])) {
 		$shd = "text";
 	} elseif ($idhr == "" || $idbl == "") {
 		if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
-			$API->write('/system/script/print', false);
-			$API->write('?=comment=mikhmon');
-			$ARRAY = $API->read();
+			$ARRAY = mkl_report_fetch($API, 'all', '');
 			$API->disconnect();
 		}
 		$filedownload = "all";
@@ -132,7 +126,7 @@ if (!isset($_SESSION["mikhmon"])) {
 			<div class="input-group-2 col-box-4">
 			<select style="padding:5px;" class="group-item group-item-md" title="Month" id="M">
         			<?php 
-										$idbls = array(1 => "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "okt", "nov", "dec");
+										$idbls = array(1 => "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec");
 										$idblf = array(1 => "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December");
 										$month = explode("/", $idhr)[0];
 										$month1 = substr($idbl, 0, 3);

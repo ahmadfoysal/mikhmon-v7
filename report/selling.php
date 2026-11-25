@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/../include/bootstrap.php');
 // hide all error
 error_reporting(0);
 if (!isset($_SESSION["mikhmon"])) {
@@ -44,29 +44,11 @@ if (!isset($_SESSION["mikhmon"])) {
 	if (isset($remdata)) {
 		if (strlen($idhr) > "0") {
 			if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
-				$API->write('/system/script/print', false);
-				$API->write('?source=' . $idhr . '', false);
-				$API->write('=.proplist=.id');
-				$ARREMD = $API->read();
-				for ($i = 0; $i < count($ARREMD); $i++) {
-					$API->write('/system/script/remove', false);
-					$API->write('=.id=' . $ARREMD[$i]['.id']);
-					$READ = $API->read();
-
-				}
+				mkl_report_remove($API, 'day', $idhr);
 			}
 		} elseif (strlen($idbl) > "0") {
 			if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
-				$API->write('/system/script/print', false);
-				$API->write('?owner=' . $idbl . '', false);
-				$API->write('=.proplist=.id');
-				$ARREMD = $API->read();
-				for ($i = 0; $i < count($ARREMD); $i++) {
-					$API->write('/system/script/remove', false);
-					$API->write('=.id=' . $ARREMD[$i]['.id']);
-					$READ = $API->read();
-
-				}
+				mkl_report_remove($API, 'month', $idbl);
 			}
 
 		}
@@ -79,13 +61,8 @@ if (!isset($_SESSION["mikhmon"])) {
 		$fprefix = "";
 	}
 	if (strlen($idhr) > "0") {
-		//var_dump($idhr);
 		if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
-			$search_date = date_create_from_format("M/j/Y","$idhr");
-			$source = date_format($search_date, "Y-m-d");
-			$getData = $API->comm("/system/script/print", array(
-				"?source" => "$source",
-			));
+			$getData = mkl_report_fetch($API, 'day', $idhr);
 			$TotalReg = count($getData);
 		}
 		$filedownload = $idhr;
@@ -93,19 +70,7 @@ if (!isset($_SESSION["mikhmon"])) {
 		$shd = "inline-block";
 	} elseif (strlen($idbl) > "0") {
 		if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
-
-
-			$year = substr($idbl, 3);
-			$monthstr = substr($idbl, 0,3);
-			//echo $monthstr;	
-			$date = date_parse($monthstr);
-			$month = $date['month'];
-			//echo $month;
-			$owner = ($month < 10?"0".$month:$month).$year;
-			echo $owner ;
-			$getData = $API->comm("/system/script/print", array(
-				"?owner" => "$owner",
-			));
+			$getData = mkl_report_fetch($API, 'month', $idbl);
 			$TotalReg = count($getData);
 		}
 		$filedownload = $idbl;
@@ -113,25 +78,21 @@ if (!isset($_SESSION["mikhmon"])) {
 		$shd = "inline-block";
 	} elseif ($idhr == "" || $idbl == "") {
 		if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
-			$getData = $API->comm("/system/script/print", array(
-				"?comment" => "mikhmon",
-			));
+			$getData = mkl_report_fetch($API, 'all', '');
 			$TotalReg = count($getData);
 		}
 		$filedownload = "all";
 		$shf = "text";
 		$shd = "none";
-	} /*elseif (strlen($idbl) > "0" ) {
+	} elseif (strlen($idbl) > "0" ) {
 		if ($API->connect($iphost, $userhost, decrypt($passwdhost))) {
-			$getData = $API->comm("/system/script/print", array(
-				"?owner" => "$idbl",
-			));
+			$getData = mkl_report_fetch($API, 'month', $idbl);
 			$TotalReg = count($getData);
 		}
 		$filedownload = $idbl;
 		$shf = "hidden";
 		$shd = "inline-block";
-	}*/
+	}
 	
 }
 ?>
@@ -356,9 +317,8 @@ $(document).ready(function(){
 					<th ><?= $_date ?></th>
 					<th ><?= $_time ?></th>
 					<th ><?= $_user_name ?></th>
-					<th ><?= $_profile ?></th>					
+					<th ><?= $_profile ?></th>
 					<th ><?= $_comment ?></th>
-					<th>mac</th>
 					<th style="text-align:right;"> <?= $_price ?></th>
 				</tr>
 				</thead>
@@ -367,7 +327,6 @@ $(document).ready(function(){
 			if ($prefix != "") {
 				for ($i = 0; $i < $TotalReg; $i++) {
 					$getname = explode("-|-", $getData[$i]['name']);
-					var_dump($getname);
 					if (substr($getname[2], 0, strlen($prefix)) == $prefix) {
 						echo "<tr>";
 						echo "<td>";
@@ -382,13 +341,10 @@ $(document).ready(function(){
 						$username = $getname[2];
 						echo $username;
 						echo "</td>";
-						
 						echo "<td>";
 						$profile = $getname[7];
 						echo $profile;
 						echo "</td>";
-
-						
 						echo "<td>";
 						$comment = $getname[8];
 						echo $comment;
@@ -424,12 +380,6 @@ $(document).ready(function(){
 					$comment = $getname[8];
 					echo $comment;
 					echo "</td>";
-
-					echo "<td>";
-					$mac = $getname[5];
-					echo $mac;
-					echo "</td>";
-
 					echo "<td style='text-align:right;'>";
 					$price = $getname[3];
 					echo $price;
@@ -437,7 +387,7 @@ $(document).ready(function(){
 					echo "</tr>";
 				
 				$dataresume .= $getname[0].$getname[3];
-				$totalresume += $getname[3];
+				$totalresume += mkl_num($getname[3]);
 				$_SESSION['dataresume'] = $dataresume;
 				$_SESSION['totalresume'] = $TotalReg.'/'.$totalresume;
 				}

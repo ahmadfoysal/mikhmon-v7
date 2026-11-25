@@ -38,6 +38,16 @@ if (!isset($_SESSION["mikhmon"])) {
 	$countprofile = $API->comm("/ip/hotspot/user/profile/print", array(
 		"count-only" => "",
 	));
+
+// profiles whose scripts were written by an older Mikhmon
+	$mkloutdated = 0;
+	foreach ((array)$getprofile as $mklp) {
+		if (mkl_onlogin_outdated($mklp['on-login'])) {
+			$mkloutdated++;
+		}
+	}
+	$mklrepaired = $_SESSION[$session . 'mklrepaired'];
+	$_SESSION[$session . 'mklrepaired'] = "";
 }
 ?>
 <div class="row">
@@ -50,6 +60,16 @@ if (!isset($_SESSION["mikhmon"])) {
 </div>
 <!-- /.card-header -->
 <div class="card-body">
+<?php if ($mklrepaired != "") { ?>
+<div class="box bg-green" style="margin-bottom:10px;padding:8px 12px;"><i class="fa fa-check"></i> Scripts updated: <?= htmlspecialchars($mklrepaired) ?></div>
+<?php } ?>
+<?php if ($mkloutdated > 0) { ?>
+<div class="box bg-warning" style="margin-bottom:10px;padding:8px 12px;">
+	<i class="fa fa-warning"></i> <?= $mkloutdated ?> profile(s) marked <i class="fa fa-wrench"></i> still use old scripts that depend on the RouterOS date format (they break on RouterOS v7.10+).
+	Price, validity, expired mode and lock are kept.
+	&nbsp; <button class="btn bg-primary" onclick="if(confirm('Update the on-login script and expiry monitor of all Mikhmon profiles on this router?')){loadpage('./?repair-scripts=all&session=<?= $session; ?>')}"><i class="fa fa-wrench"></i> Repair scripts</button>
+</div>
+<?php } ?>
 <div class="overflow box-bordered" style="max-height: 75vh"> 			   
 <table id="tFilter" class="table table-bordered table-hover text-nowrap">
   <thead>
@@ -96,7 +116,7 @@ for ($i = 0; $i < $TotalReg; $i++) {
   <td style='text-align:center;'><i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('Are you sure to delete profile (<?= $pname; ?>)?')){loadpage('./?remove-user-profile=<?= $pid; ?>&pname=<?= $pname ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $pname; ?>'></i>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
   <?php
 	echo "<a title='Open User by profile " . $pname . "'  href='./?hotspot=users&profile=" . $pname . "&session=" . $session . "'><i class='fa fa-users'></i></a></td>";
-	echo "<td><a title='Open User Profile " . $pname . "' href='./?user-profile=" . $pid . "&session=" . $session . "'><i class='fa fa-edit'></i> <i class='fa fa-ci fa-circle ".$moncolor."'></i> $pname</a></td>";
+	echo "<td><a title='Open User Profile " . $pname . "' href='./?user-profile=" . $pid . "&session=" . $session . "'><i class='fa fa-edit'></i> <i class='fa fa-ci fa-circle ".$moncolor."'></i> $pname".(mkl_onlogin_outdated($ponlogin) ? " <i class='fa fa-wrench text-orange' title='Old script - use Repair scripts'></i>" : "")."</a></td>";
 //$profiledetalis = $ARRAY[$i];echo "<td>" . $profiledetalis['name'];echo "</td>";
 	echo "<td>" . $psharedu;
 	echo "</td>";
@@ -134,9 +154,9 @@ for ($i = 0; $i < $TotalReg; $i++) {
 		echo "";
 	} else {
 		if ($currency == in_array($currency, $cekindo['indo'])) {
-			echo number_format($price, 0, ",", ".");
+			echo number_format((float)$price, 0, ",", ".");
 		} else {
-			echo number_format($price, 2);
+			echo number_format((float)$price, 2);
 		}
 	}
 
@@ -149,9 +169,9 @@ for ($i = 0; $i < $TotalReg; $i++) {
 		echo "";
 	} else {
 		if ($currency == in_array($currency, $cekindo['indo'])) {
-			echo number_format($price, 0, ",", ".");
+			echo number_format((float)$price, 0, ",", ".");
 		} else {
-			echo number_format($price, 2);
+			echo number_format((float)$price, 2);
 		}
 	}
 

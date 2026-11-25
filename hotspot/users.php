@@ -17,9 +17,7 @@
  */
 
 // hide all error
-error_reporting(1);
-//var_dump("here");
-//die();
+error_reporting(0);
 ini_set('max_execution_time', 300);
 
 if (!isset($_SESSION["mikhmon"])) {
@@ -219,39 +217,11 @@ for ($i = 0; $i < $TotalReg; $i++) {
   }
 
   echo "<tr>";
-
-  echo "<td style='text-align:center;'>";
-  
-  
-  
-   $uriprocess = "'./?clear-user-data=" . $uid . "&session=" . $session."'";
-
-  //echo '<span class="text-primary pointer" title="Reset Counter ' . $uname . '"  onclick="loadpage('.$uriprocess.')"><i class="fa fa-calculator"></i></span>&nbsp&nbsp';
-  
-    
   ?>
-  
-  
-  <i class='fa fa-repeat text-green pointer' onclick="if(confirm('Are you sure to clear user (<?= $uname; ?>)?')){loadpage(<?= $uriprocess?>)}else{}" title='Clear <?= $uname; ?>'></i>&nbsp&nbsp
-  
-<?php
-
-   $uriprocess = "'./?rest-counter=" . $uid . "&session=" . $session. "&mac-address=tnrsoft'";
-  ?>
-  
-  
-  <i class='fa fa-calculator text-primary pointer' onclick="if(confirm('Are you sure to reset user (<?= $uname; ?>)?')){loadpage(<?= $uriprocess?>)}else{}" title='Reset <?= $uname; ?>'></i>&nbsp&nbsp
-  
-<?php
-	
-	$uriprocess = "'./?remove-hotspot-mac=" . $uid . "&session=" . $session. "&mac-address=" . $umacadd."'";
-	
-  echo '<span class="text-warning pointer" title="Remove mac address ' . $umacadd . '"  onclick="loadpage('.$uriprocess.')"><i class="fa fa-refresh "></i></span>';
-  ?>
-  
-  &nbsp&nbsp
-  <i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('Are you sure to delete username (<?= $uname; ?>)?')){loadpage('./?remove-hotspot-user=<?= $uid; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $uname; ?>'></i>&nbsp&nbsp
-  
+  <td style='text-align:center;'>  <i class='fa fa-minus-square text-danger pointer' onclick="if(confirm('Are you sure to delete username (<?= $uname; ?>)?')){loadpage('./?remove-hotspot-user=<?= $uid; ?>&session=<?= $session; ?>')}else{}" title='Remove <?= $uname; ?>'></i>&nbsp;&nbsp;
+  <i class='fa fa-repeat text-green pointer' onclick="if(confirm('Clear cookie, active session and MAC lock of (<?= $uname; ?>)?')){loadpage('./?clear-user-data=<?= $uid; ?>&session=<?= $session; ?>')}else{}" title='Clear <?= $uname; ?>'></i>&nbsp;&nbsp;
+  <i class='fa fa-calculator text-primary pointer' onclick="if(confirm('Reset counters of (<?= $uname; ?>)?')){loadpage('./?reset-hotspot-user=<?= $uid; ?>&session=<?= $session; ?>')}else{}" title='Reset counter <?= $uname; ?>'></i>&nbsp;&nbsp;
+  <i class='fa fa-refresh text-warning pointer' onclick="if(confirm('Remove MAC lock of (<?= $uname; ?>)?')){loadpage('./?remove-hotspot-mac=<?= $uid; ?>&session=<?= $session; ?>')}else{}" title='Remove MAC <?= $umacadd; ?>'></i>&nbsp;&nbsp;
   <?php
   if ($udisabled == "true") {
     $uriprocess = "'./?enable-hotspot-user=" . $uid . "&session=" . $session."'";

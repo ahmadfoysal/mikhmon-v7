@@ -32,22 +32,10 @@ if (!isset($_SESSION["mikhmon"])) {
     $logobt = ($_POST['logobt']);
     $qrbt = ($_POST['qrbt']);
 
-    $cari = array('1' => "mikhmon<|<$useradm", "mikhmon>|>$passadm");
-    $ganti = array('1' => "mikhmon<|<$suseradm", "mikhmon>|>$spassadm");
-
-    for ($i = 1; $i < 3; $i++) {
-      $file = file("./include/config.php");
-      $content = file_get_contents("./include/config.php");
-      $newcontent = str_replace((string)$cari[$i], (string)$ganti[$i], "$content");
-      file_put_contents("./include/config.php", "$newcontent");
-    }
-
-  
-  $gen = '<?php $qrbt="' . $qrbt . '";?>';
-          $key = './include/quickbt.php';
-          $handle = fopen($key, 'w') or die('Cannot open file:  ' . $key);
-          $data = $gen;
-          fwrite($handle, $data);
+    // an empty password keeps the current one
+    mkl_admin_set($suseradm, $_POST['passadm']);
+    $_SESSION["mikhmon"] = mkl_admin_user();
+    mkl_pref_set(array('qrbt' => ($qrbt == 'enable' ? 'enable' : 'disable')));
     echo "<script>window.location='./admin.php?id=sessions'</script>";
   }
 
@@ -79,9 +67,8 @@ if (!isset($_SESSION["mikhmon"])) {
             <div class="card-body">
             <div class="row">
               <?php
-              foreach (file('./include/config.php') as $line) {
-                $value = explode("'", $line)[1];
-                if ($value == "" || $value == "mikhmon") {
+              foreach (mkl_routers() as $value => $mklr) {
+                if ($value == "") {
                 } else { ?>
                     <div class="col-12">
                         <div class="box bmh-75 box-bordered <?= $color[rand(1, 11)]; ?>">
@@ -95,12 +82,12 @@ if (!isset($_SESSION["mikhmon"])) {
                                 
                                   <div class="box-group-area">
                                     <span>
-                                      <?= $_hotspot_name ?> : <?= explode('%', $data[$value][4])[1]; ?><br>
+                                      <?= $_hotspot_name ?> : <?= htmlspecialchars($mklr['hotspotname']); ?><br>
                                       <?= $_session_name ?> : <?= $value; ?><br>
                                       <span class="connect pointer"  id="<?= $value; ?>"><i class="fa fa-external-link"></i> <?= $_open ?></span>&nbsp;
                                       <a href="./admin.php?id=settings&session=<?= $value; ?>"><i class="fa fa-edit"></i> <?= $_edit ?></a>&nbsp;
                                       <a href="javascript:void(0)" onclick="if(confirm('Are you sure to delete data <?= $value;
-                                      echo " (" . explode('%', $data[$value][4])[1] . ")"; ?>?')){loadpage('./admin.php?id=remove-session&session=<?= $value; ?>')}else{}"><i class="fa fa-remove"></i> <?= $_delete ?></a>
+                                      echo " (" . htmlspecialchars($mklr['hotspotname']) . ")"; ?>?')){loadpage('./admin.php?id=remove-session&session=<?= $value; ?>')}else{}"><i class="fa fa-remove"></i> <?= $_delete ?></a>
                                     </span>
 
                                   </div>
@@ -132,7 +119,7 @@ if (!isset($_SESSION["mikhmon"])) {
           <td>
           <div class="input-group">
           <div class="input-group-11 col-box-10">
-                <input class="group-item group-item-l" id="passadm" type="password" size="10" name="passadm" title="Password Admin" value="<?= decrypt($passadm); ?>" required="1"/>
+                <input class="group-item group-item-l" id="passadm" type="password" size="10" name="passadm" title="Password Admin" value="" placeholder="(unchanged)" autocomplete="new-password"/>
               </div>
                 <div class="input-group-1 col-box-2">
                   <div class="group-item group-item-r pd-2p5 text-center align-middle">

@@ -22,8 +22,8 @@ class RouterosAPI
     var $port      = 8728;  //  Port to connect to (default 8729 for ssl)
     var $ssl       = false; //  Connect using SSL (must enable api-ssl in IP/Services)
     var $timeout   = 3;     //  Connection attempt timeout and data read timeout
-    var $attempts  = 5;     //  Connection attempt count
-    var $delay     = 3;     //  Delay between connection attempts in seconds
+    var $attempts  = 2;     //  Connection attempt count
+    var $delay     = 1;     //  Delay between connection attempts in seconds
 
     var $socket;            //  Variable for storing socket resource
     var $error_no;          //  Variable for storing connection error number, if any
@@ -94,10 +94,31 @@ class RouterosAPI
      */
     public function connect($ip, $login, $password)
     {
+        // Accept "host", "host:port" and "ssl://host[:port]" (API-SSL, default port 8729).
+        $ip = trim((string)$ip);
+        if (stripos($ip, 'ssl://') === 0) {
+            $ip = substr($ip, 6);
+            $this->ssl = true;
+            if ($this->port == 8728) {
+                $this->port = 8729;
+            }
+        }
+        if (preg_match('/^([^:]+):(\d{1,5})$/', $ip, $HOSTPORT)) {
+            $ip = $HOSTPORT[1];
+            $this->port = (int)$HOSTPORT[2];
+        }
+        // shared server: never connect to the server itself or its internal network
+        if (function_exists('mkl_host_check')) {
+            $ip = mkl_host_check($ip);
+            if ($ip === '') {
+                $this->error_str = 'Router address not allowed';
+                return false;
+            }
+        }
         for ($ATTEMPT = 1; $ATTEMPT <= $this->attempts; $ATTEMPT++) {
             $this->connected = false;
             $PROTOCOL = ($this->ssl ? 'ssl://' : '' );
-            $context = stream_context_create(array('ssl' => array('ciphers' => 'ADH:ALL', 'verify_peer' => false, 'verify_peer_name' => false)));
+            $context = stream_context_create(array('ssl' => array('ciphers' => 'ADH:ALL:@SECLEVEL=0', 'verify_peer' => false, 'verify_peer_name' => false)));
             $this->debug('Connection attempt #' . $ATTEMPT . ' to ' . $PROTOCOL . $ip . ':' . $this->port . '...');
             $this->socket = @stream_socket_client($PROTOCOL . $ip.':'. $this->port, $this->error_no, $this->error_str, $this->timeout, STREAM_CLIENT_CONNECT,$context);
             if ($this->socket) {
@@ -132,7 +153,9 @@ class RouterosAPI
                 }
                 fclose($this->socket);
             }
-            sleep($this->delay);
+            if ($ATTEMPT < $this->attempts) {
+                sleep($this->delay);
+            }
         }
 
         if ($this->connected) {
@@ -280,6 +303,11 @@ class RouterosAPI
      */
     public function read($parse = true)
     {
+        // Not connected (router offline): behave like an empty reply
+        // instead of a fatal error on PHP 8.
+        if (!is_resource($this->socket)) {
+            return array();
+        }
         $RESPONSE     = array();
         $receiveddone = false;
         while (true) {
@@ -367,6 +395,9 @@ class RouterosAPI
      */
     public function write($command, $param2 = true)
     {
+        if (!is_resource($this->socket)) {
+            return false;
+        }
         if ($command) {
             $data = explode("\n", $command);
             foreach ($data as $com) {
@@ -644,4 +675,5 @@ function randNULC($length) {
 	return $result;
 }
 
-?>
+// MikhmonLive universal engine (date formats, router scripts, reports)
+require_once(__DIR__ . '/mikhmonlive.php');

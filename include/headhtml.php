@@ -15,14 +15,14 @@
  *		You should have received a copy of the GNU General Public License
  *		along with this program.		If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/../include/bootstrap.php');
  // hide all error
 error_reporting(0);
 ?>
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>STERLING iT <?= $hotspotname; ?></title>
+		<title><?= htmlspecialchars(mkl_site('brand')) ?> <?= $hotspotname; ?></title>
 		<meta charset="utf-8">
 		<meta http-equiv="cache-control" content="private" />
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">

@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/../include/bootstrap.php');
 
 
 ?>
@@ -27,12 +27,10 @@ session_start();
     </div>
     <div class="card-body">
       <div class="text-center pd-5">
-        <img src="img/favicon1.png" alt="Sterling Logo">
-        
-        <h2> PREPAID BILLING SYSTEM</h2>
+        <img src="img/favicon.png" alt="Logo">
       </div>
       <div  class="text-center">
-      
+      <span style="font-size: 25px; margin: 10px;"><?= htmlspecialchars(mkl_site('brand')) ?></span>
       </div>
       <center>
       <form autocomplete="off" action="" method="post">
@@ -59,12 +57,8 @@ session_start();
         </tr>
       </table>
       </form>
-
-      <h3 style="color: #20A8D8" > WhatsApp: +971 56 10 34799 </h>
-    
       </center>
     </div>
-    
   </div>
 </div>
 
