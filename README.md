@@ -9,6 +9,8 @@ What is different from classic Mikhmon:
 - **PHP 7.4 – 8.3.**
 - **Safe on a shared server.** No customer input is ever written to an executable file: settings are JSON, voucher templates are interpreted (not included), router passwords are AES-256-GCM encrypted, admin passwords are hashed.
 
+**Deploying on an aaPanel server (Bangla, step by step): see [DEPLOY.md](DEPLOY.md).**
+
 ## Single owner (like classic Mikhmon)
 
 Upload the folder, open it in the browser, log in with `mikhmon` / `1234` and change the password. Data is kept in `./data/`.
