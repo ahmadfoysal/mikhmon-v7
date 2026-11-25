@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/include/bootstrap.php');
 // hide all error
 error_reporting(0);
 
@@ -73,12 +73,18 @@ if ($id == "login" || substr($url, -1) == "p") {
   if (isset($_POST['login'])) {
     $user = $_POST['user'];
     $pass = $_POST['pass'];
-    if ($user == $useradm && $pass == decrypt($passadm)) {
+    $mklwait = mkl_login_wait();
+    if ($mklwait > 0) {
+      $error = '<div style="width: 100%; padding:5px 0px 5px 0px; border-radius:5px;" class="bg-danger"><i class="fa fa-ban"></i> Alert!<br>Too many failed logins. Try again in ' . ceil($mklwait / 60) . ' minute(s).</div>';
+    } elseif (mkl_admin_verify($user, $pass)) {
+      mkl_login_note(true);
+      session_regenerate_id(true);
       $_SESSION["mikhmon"] = $user;
 
         echo "<script>window.location='./admin.php?id=sessions'</script>";
     
     } else {
+      mkl_login_note(false);
       $error = '<div style="width: 100%; padding:5px 0px 5px 0px; border-radius:5px;" class="bg-danger"><i class="fa fa-ban"></i> Alert!<br>Invalid username or password.</div>';
     }
   }
@@ -144,15 +150,7 @@ if ($id == "login" || substr($url, -1) == "p") {
   include_once('./process/shutdown.php');
 } elseif ($id == "remove-session" && $session != "") {
   include_once('./include/menu.php');
-  $fc = file("./include/config.php" );
-  $f = fopen("./include/config.php", "w");
-  $q = "'";
-  $rem = '$data['.$q.$session.$q.']';
-  foreach ($fc as $line) {
-    if (!strstr($line, $rem))
-      fputs($f, $line);
-  }
-  fclose($f);
+  mkl_router_remove($session);
   echo "<script>window.location='./admin.php?id=sessions'</script>";
 } elseif ($id == "about") {
   include_once('./include/menu.php');
@@ -164,9 +162,10 @@ if ($id == "login" || substr($url, -1) == "p") {
   echo "<script>window.location='./admin.php?id=login'</script>";
 } elseif ($id == "remove-logo" && $logo != ""  && !empty($session)) {
   include_once('./include/menu.php');
-  $logopath = "./img/";
-  $remlogo = $logopath . $logo;
-  unlink("$remlogo");
+  // only the logo of a router of this customer can be removed
+  if (preg_match('/^logo-([A-Za-z0-9_.-]+)\.png$/', (string)$logo, $mkllogo) && is_file(mkl_logo_file($mkllogo[1]))) {
+    unlink(mkl_logo_file($mkllogo[1]));
+  }
   echo "<script>window.location='./admin.php?id=uplogo&session=" . $session . "'</script>";
 } elseif ($id == "editor"  && !empty($session)) {
   include_once('./include/menu.php');

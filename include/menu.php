@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/../include/bootstrap.php');
 // hide all error
 error_reporting(0);
 
@@ -60,14 +60,10 @@ if (!isset($_SESSION["mikhmon"])) {
     $sactive = "active";
     $mpage = $_hotspot_active;
     $hamenu = "menu-open";
-  }
-  elseif ($hotspot == "server" || $removeuseractive != "") {
-    $sactive = "active";
+  } elseif ($hotspot == "server") {
+    $sserver = "active";
     $mpage = $_hotspot_server;
-    $hamenu = "menu-open";
-  }
-  
-  elseif ($hotspot == "hosts" || $hotspot == "hostp" || $hotspot == "hosta" || $removehost != "") {
+  } elseif ($hotspot == "hosts" || $hotspot == "hostp" || $hotspot == "hosta" || $removehost != "") {
     $shosts = "active";
     $mpage = $_hosts;
     $hmenu = "menu-open";
@@ -180,7 +176,7 @@ if($idleto != "disable"){
 
 <div id="navbar" class="navbar">
   <div class="navbar-left">
-    <a id="brand" class="text-center" href="javascript:void(0)">STERLING iT</a>
+    <a id="brand" class="text-center" href="javascript:void(0)"><?= htmlspecialchars(mkl_site('brand')) ?></a>
 
 <a id="openNav" class="navbar-hover" href="javascript:void(0)"><i class="fa fa-bars"></i></a>
 <a id="closeNav" class="navbar-hover" href="javascript:void(0)"><i class="fa fa-bars"></i></a>
@@ -255,7 +251,7 @@ include('./info.php');
 
 <div id="navbar" class="navbar">
   <div class="navbar-left">
-    <a id="brand" class="text-center" href="./?session=<?= $session; ?>">STERLING iT</a>
+    <a id="brand" class="text-center" href="./?session=<?= $session; ?>"><?= htmlspecialchars(mkl_site('brand')) ?></a>
 
 <a id="openNav" class="navbar-hover" href="javascript:void(0)"><i class="fa fa-bars"></i></a>
 <a id="closeNav" class="navbar-hover" href="javascript:void(0)"><i class="fa fa-bars"></i></a>
@@ -273,9 +269,8 @@ include('./info.php');
   <select class="connect optfa ses text-right mr-t-10 pd-5">
     <option id="MikhmonSession" value="<?= $session; ?>"><?= $hotspotname; ?></option>
       <?php
-      foreach (file('./include/config.php') as $line) {
-        $sesname = explode("'", $line)[1];
-        if ($sesname == "" || $sesname== "mikhmon") {
+      foreach (mkl_routers() as $sesname => $mklr) {
+        if ($sesname == "") {
         } else {
         if($sesname == $session){
           echo '<option value="' . $sesname. '">'.$sesname. ' &#x2666;</option>';
@@ -319,8 +314,8 @@ include('./info.php');
   </div>
   <!--active-->
   <a href="./?hotspot=active&session=<?= $session; ?>" class="menu <?= $sactive; ?>"><i class=" fa fa-wifi"></i> <?= $_hotspot_active ?></a>
-  <!--server -->
-  <a href="./?hotspot=server&session=<?= $session; ?>" class="menu <?= $sactive; ?>"><i class=" fa fa-server"></i> <?= $_hotspot_server ?></a>
+  <!--server-->
+  <a href="./?hotspot=server&session=<?= $session; ?>" class="menu <?= $sserver; ?>"><i class=" fa fa-server"></i> <?= $_hotspot_server ?></a>
   <!--hosts-->
   <a href="./?hotspot=hosts&session=<?= $session; ?>" class="menu <?= $shosts; ?>"><i class=" fa fa-laptop"></i> <?= $_hosts ?></a>
   <!--ip bindings-->

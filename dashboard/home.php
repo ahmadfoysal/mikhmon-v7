@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/../include/bootstrap.php');
 // hide all error
 error_reporting(0);
 if (!isset($_SESSION["mikhmon"])) {
@@ -123,7 +123,7 @@ if (!isset($_SESSION["mikhmon"])) {
                     <?php 
                     echo ucfirst($clock['date']) . " " . $clock['time'] . "<br>
                     ".$_uptime." : " . formatDTM($resource['uptime']);
-                    $_SESSION[$session.'sdate'] = $clock['date'];
+                    $_SESSION[$session.'sdate'] = mkl_date_legacy(strtolower($clock['date']));
                     ?>
                 </span>
               </div>

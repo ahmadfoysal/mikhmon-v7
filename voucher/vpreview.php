@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/../include/bootstrap.php');
 
 error_reporting(0);
 
@@ -41,12 +41,7 @@ if (!isset($_SESSION["mikhmon"])) {
   $userp = $_GET['user'];
 
 
-  $logo = "../img/logo-" . $session . ".png";
-  if (file_exists($logo)) {
-    $logo = "../img/logo-" . $session . ".png";
-  } else {
-    $logo = "../img/logo.png";
-  }
+  $logo = mkl_logo_url($session, '../');
 
  
   $username = "mikhmon";
@@ -60,10 +55,10 @@ if (!isset($_SESSION["mikhmon"])) {
   
 if ($currency == in_array($currency, $cekindo['indo'])) {
     $getprice = "5000";
-    $price = $currency . " " . number_format($getprice, 0, ",", ".");
+    $price = $currency . " " . number_format((float)$getprice, 0, ",", ".");
 } else {
     $getprice = "10";
-    $price = $currency . " " . number_format($getprice, 2);
+    $price = $currency . " " . number_format((float)$getprice, 2);
 }
   
   
@@ -146,15 +141,9 @@ table.voucher {
 <?php
 
 
-if ($userp != "") {
-  include('./template-thermal.php');
-} else {
-  if ($small == "yes") {
-    include('./template-small.php');
-  } else {
-    include('./template.php');
-  }
-}
+// templates are data: rendered by the safe interpreter, never included as PHP
+require_once(__DIR__ . '/../lib/mkl_template.php');
+echo mkl_tpl_render($userp != "" ? 'thermal' : ($small == "yes" ? 'small' : 'default'), compact(mkl_tpl_varnames()));
 ?>
 
 

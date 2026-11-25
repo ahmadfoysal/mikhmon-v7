@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/../include/bootstrap.php');
 // hide all error
 error_reporting(0);
 if (!isset($_SESSION["mikhmon"])) {
@@ -46,39 +46,26 @@ if (!isset($_SESSION["mikhmon"])) {
         <h3><i class="fa fa-info-circle"></i> About</h3>
       </div>
       <div class="card-body">
-        <h3>Sterling IT<?= $_SESSION['v']; ?></h3>
+        <h3><?= htmlspecialchars(mkl_site('brand')) ?> <?= $_SESSION['v']; ?></h3>
 <p>
+  Hotspot voucher management for MikroTik RouterOS v6 and v7 (all date formats).
 </p>
-
 <p>
   <ul>
     <li>
-      Author : Mohammed Anamul Hoque
+      Based on MIKHMON v3 by Laksamadi Guko : <a href="https://laksa19.github.io">laksa19.github.io</a>
     </li>
     <li>
-      Contact : +971 55 599 0045
-    </li>
-      Website : 
+      Licence : <a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html">GPLv2</a>
     </li>
     <li>
-      Facebook : 
+      API Class : <a href="https://github.com/BenMenking/routeros-api">routeros-api</a>
     </li>
   </ul>
 </p>
-<p>
-» Copyright Notice «
-আপনি কখনই কপিরাইট আইন ভঙ্গ করবেন না ।
- এই সফটওয়্যার কোনো এডিট বা পরিবর্তন করতে চাইলে অবশ্যই সফটওয়্যার কোম্পানিকে অবহিত করতে হবে। 
-নয়ত কোন সমস্যা হলে কর্তৃপক্ষ দায়ী থাকবে না। সফটওয়্যার ক্রয়ের পূর্বে বিক্রয়ের টার্মস এন্ড কন্ডিশন দেখে নিবেন ।
-<br>
-You will never break copyright laws.
- If you want to make any edit or change of this software,
- you must notify the software company. 
-Otherwise, the authorities will not be responsible for any problems.Before buying the software, 
-you should check the terms and conditions of the sale.
-</p>
 <div>
-    <i>Copyright &copy; <i> Sterling IT Serive. Anam ,UAE, 24/7 Support: Call +971555990045 (Whatsapp) </i></i>
+    <i>MIKHMON Copyright &copy; 2018 Laksamadi Guko</i>
+</div>
 </div>
 </div>
 </div>

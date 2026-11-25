@@ -48,6 +48,7 @@ $_grace_period = "Masa Tenggang";
 $_help = "Bantuan";
 $_hosts = "Hosts";
 $_hotspot_active = "Hotspot Aktif";
+$_hotspot_server = "Server Hotspot";
 $_hotspot_cookies = "Cookies";
 $_hotspot_log = "Log Hotspot";
 $_hotspot_name = "Nama Hotspot";

@@ -21,19 +21,19 @@ error_reporting(0);
 ob_start("ob_gzhandler");
 
 $session = $_GET['session'];
-require('../lib/routeros_api.class.php');
+require_once('../lib/routeros_api.class.php');
 include('../lib/formatbytesbites.php');
 include('../include/config.php');
 
 // theme  
 include('../include/theme.php');
 
-$iphost = explode('!', $data[$session][1])[1];
-$userhost = explode('@|@', $data[$session][2])[1];
-$passwdhost = explode('#|#', $data[$session][3])[1];
-$hotspotname = explode('%', $data[$session][4])[1];
-$dnsname = explode('^', $data[$session][5])[1];
-$currency = explode('&', $data[$session][6])[1];
+$iphost = mkl_router($session)['host'];
+$userhost = mkl_router($session)['user'];
+$passwdhost = encrypt(mkl_router($session)['pass_plain']);
+$hotspotname = mkl_router($session)['hotspotname'];
+$dnsname = mkl_router($session)['dnsname'];
+$currency = mkl_router($session)['currency'];
 
 $cekindo['indo'] = array('RP', 'Rp', 'rp', 'IDR', 'idr', 'RP.', 'Rp.', 'rp.', 'IDR.', 'idr.', );
 
@@ -90,7 +90,7 @@ if (isset($_POST['nama'])) {
 		$getuser = $API->comm("/ip/hotspot/user/print", array("?name" => "$name"));
 		$user = $getuser[0]['name'];
 		$profile = $getuser[0]['profile'];
-		$exp = $getuser[0]['comment'];
+		$exp = mkl_comment_legacy($getuser[0]['comment']);
 		$uptime = formatDTM($getuser[0]['uptime']);
 		$getbytein = $getuser[0]['bytes-in'];
 		$getbyteo = $getuser[0]['bytes-out'];

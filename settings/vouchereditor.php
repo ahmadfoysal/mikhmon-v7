@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/../include/bootstrap.php');
 ?>
 <?php
 error_reporting(0);
@@ -26,8 +26,7 @@ if (!isset($_SESSION["mikhmon"])) {
 	$session = $_GET['session'];
 
 // load config
-include('../include/config.php');
-include('../include/readcfg.php');
+require_once(__DIR__ . '/../lib/mkl_template.php');
 
 
 
@@ -46,14 +45,16 @@ if ($telplate == "default" || $telplate == "rdefault") {
 	$popup = "javascript:window.open('./voucher/vpreview.php?usermode=up&small=yes&qr=no&session=" . $session . "','_blank','width=310,height=310')";
 	$popupQR = "javascript:window.open('./voucher/vpreview.php?usermode=up&small=yes&qr=yes&session=" . $session . "','_blank','width=310,height=310')";
 }
+$mkltplkind = array('template' => 'default', 'template-thermal' => 'thermal', 'template-small' => 'small');
+$mkltplkind = isset($mkltplkind[$telplatet]) ? $mkltplkind[$telplatet] : 'default';
+$mkltplerror = '';
+$mkltplsrc = null;
 if (isset($_POST['save'])) {
-	$template = './voucher/' . $telplatet . '.php';
-	$handle = fopen($template, 'w') or die('Cannot open file:  ' . $template);
-
-	$data = ($_POST['editor']);
-
-	fwrite($handle, $data);
-		
+	// the template is stored as data and checked: only voucher tags are allowed
+	$mkltplerror = mkl_tpl_save($mkltplkind, $_POST['editor']);
+	if ($mkltplerror != '') {
+		$mkltplsrc = (string)$_POST['editor'];
+	}
 		//header("Location:$url");
 }
 
@@ -82,6 +83,10 @@ textarea{
 						<h3><i class="fa fa-edit"></i> <?= $_template_editor ?></h3>
 					</div>
 			<div class="card-body">
+<?php if ($mkltplerror != '') { ?>
+				<div class="box bg-danger" style="padding:8px 12px;margin-bottom:10px;"><i class="fa fa-ban"></i> Template not saved: <?= htmlspecialchars($mkltplerror) ?><br>
+				Templates may only use voucher tags such as <code>&lt;?= $username ?&gt;</code> and <code>&lt;?php if ($usermode == "vc") { ?&gt; ... &lt;?php } ?&gt;</code>.</div>
+<?php } ?>
 				<form autocomplete="off" method="post" action="">
 					<table class="table">
 						<tr>
@@ -124,19 +129,14 @@ textarea{
 						</tr>
 						</table>
 	        	<textarea class="bg-dark" id="editorMikhmon" name="editor" style="width:100%" height="700">
-						<?php if ($telplate == "default") {
-						echo file_get_contents('./voucher/template.php');
-					} elseif ($telplate == "thermal") {
-						echo file_get_contents('./voucher/template-thermal.php');
-					} elseif ($telplate == "small") {
-						echo file_get_contents('./voucher/template-small.php');
-					} elseif ($telplate == "rdefault") {
-						echo file_get_contents('./voucher/default.php');
-					} elseif ($telplate == "rthermal") {
-						echo file_get_contents('./voucher/default-thermal.php');
-					} elseif ($telplate == "rsmall") {
-						echo file_get_contents('./voucher/default-small.php');
-					} ?>
+						<?php
+						if ($mkltplsrc !== null) {
+							echo htmlspecialchars($mkltplsrc);
+						} elseif (substr((string)$telplate, 0, 1) == "r") {
+							echo htmlspecialchars(mkl_tpl_builtin($mkltplkind));
+						} else {
+							echo htmlspecialchars(mkl_tpl_load($mkltplkind));
+						} ?>
 	        </textarea>
 			</form>
 			</div>
@@ -149,7 +149,7 @@ textarea{
 				</div>
 			<div class="card-body">
 				<textarea id="var" class="bg-dark" readonly rows=39 style="width:100%" disabled>
-	        		<?= file_get_contents('./voucher/variable.php'); ?>
+	        		<?= htmlspecialchars(file_get_contents('./voucher/variable.php')); ?>
 	    		</textarea>
 			</div>
 			</div>

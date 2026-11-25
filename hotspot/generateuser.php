@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/../include/bootstrap.php');
 // hide all error
 error_reporting(0);
 
@@ -50,9 +50,9 @@ date_default_timezone_set($_SESSION['timezone']);
 		}
 
 		if ($currency == in_array($currency, $cekindo['indo'])) {
-			$getprice = $currency . " " . number_format($getprice, 0, ",", ".");
+			$getprice = $currency . " " . number_format((float)$getprice, 0, ",", ".");
 		} else {
-			$getprice = $currency . " " . number_format($getprice);
+			$getprice = $currency . " " . number_format((float)$getprice);
 		}
 		$ValidPrice = "<b>Validity : " . $getvalid . " | Price : " . $getprice . " | Lock User : " . $getlocku . "</b>";
 	} else {
@@ -97,11 +97,7 @@ date_default_timezone_set($_SESSION['timezone']);
 		$_SESSION['ubp'] = $profile;
 		$commt = $user . "-" . rand(100, 999) . "-" . date("m.d.y") . "-" . $adcomment;
 		$gentemp = $commt . "|~" . $profile . "~" . $getvalid . "~" . $getprice . "!".$getsprice."~" . $timelimit . "~" . $datalimit . "~" . $getlock;
-		$gen = '<?php $genu="'.encrypt($gentemp).'";?>';
-		$temp = './voucher/temp.php';
-		$handle = fopen($temp, 'w') or die('Cannot open file:  ' . $temp);
-		$data = $gen;
-		fwrite($handle, $data);
+		mkl_pref_set(array('genu' => encrypt($gentemp)));
 
 		$a = array("1" => "", "", 1, 2, 2, 3, 3, 4);
 
@@ -231,7 +227,7 @@ date_default_timezone_set($_SESSION['timezone']);
 	}
 
 	$getprofile = $API->comm("/ip/hotspot/user/profile/print");
-	include_once('./voucher/temp.php');
+	$genu = mkl_pref('genu');
 	$genuser = explode("-", decrypt($genu));
 	$genuser1 = explode("~", decrypt($genu));
 	$umode = $genuser[0];
@@ -273,11 +269,11 @@ date_default_timezone_set($_SESSION['timezone']);
 	//$urlprint = "$umode-$ucode-$udate-$ucommt";
 	$urlprint = explode("|", decrypt($genu))[0];
 	if ($currency == in_array($currency, $cekindo['indo'])) {
-		$uprice = $currency . " " . number_format($uprice, 0, ",", ".");
-		$suprice = $currency . " " . number_format($suprice, 0, ",", ".");
+		$uprice = $currency . " " . number_format((float)$uprice, 0, ",", ".");
+		$suprice = $currency . " " . number_format((float)$suprice, 0, ",", ".");
 	} else {
-		$uprice = $currency . " " . number_format($uprice);
-		$suprice = $currency . " " . number_format($suprice);
+		$uprice = $currency . " " . number_format((float)$uprice);
+		$suprice = $currency . " " . number_format((float)$suprice);
 
 	}
 

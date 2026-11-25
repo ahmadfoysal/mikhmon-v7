@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/../include/bootstrap.php');
 
 error_reporting(0);
 
@@ -41,7 +41,7 @@ if (!isset($_SESSION["mikhmon"])) {
   $small = $_GET['small'];
   $userp = $_GET['user'];
 
-  require('../lib/routeros_api.class.php');
+  require_once('../lib/routeros_api.class.php');
   $API = new RouterosAPI();
   $API->debug = false;
   $API->connect($iphost, $userhost, decrypt($passwdhost));
@@ -80,15 +80,15 @@ if (!isset($_SESSION["mikhmon"])) {
   
     if($getsprice == "0" && $getprice != "0"){
       if ($currency == in_array($currency, $cekindo['indo'])) {
-        $price = $currency . " " . number_format($getprice, 0, ",", ".");
+        $price = $currency . " " . number_format((float)$getprice, 0, ",", ".");
       } else {
-        $price = $currency . " " . number_format($getprice, 2);
+        $price = $currency . " " . number_format((float)$getprice, 2);
       }
     }else if($getsprice != "0"){
       if ($currency == in_array($currency, $cekindo['indo'])) {
-        $price = $currency . " " . number_format($getsprice, 0, ",", ".");
+        $price = $currency . " " . number_format((float)$getsprice, 0, ",", ".");
       } else {
-        $price = $currency . " " . number_format($getsprice, 2);
+        $price = $currency . " " . number_format((float)$getsprice, 2);
       }
     }else if ($getsprice == "0") {
       $price = "";
@@ -97,12 +97,7 @@ if (!isset($_SESSION["mikhmon"])) {
     
   
 
-  $logo = "../img/logo-" . $session . ".png";
-  if (file_exists($logo)) {
-    $logo = "../img/logo-" . $session . ".png?t=". str_replace(" ","_",date("Y-m-d H:i:s"));
-  } else {
-    $logo = "../img/logo.png?t=". str_replace(" ","_",date("Y-m-d H:i:s"));
-  }
+  $logo = mkl_logo_url($session, '../');
 
 }
 ?>
@@ -191,15 +186,9 @@ table.voucher {
   $num = $i + 1;
   ?>
 <?php
-if ($userp != "") {
-  include('./template-thermal.php');
-} else {
-  if ($small == "yes") {
-    include('./template-small.php');
-  } else {
-    include('./template.php');
-  }
-}
+// templates are data: rendered by the safe interpreter, never included as PHP
+require_once(__DIR__ . '/../lib/mkl_template.php');
+echo mkl_tpl_render($userp != "" ? 'thermal' : ($small == "yes" ? 'small' : 'default'), compact(mkl_tpl_varnames()));
 ?>
 <?php 
 } ?>

@@ -1,1 +1,3 @@
-<?php $genu="rpRfbWZjZWJkZmJiZmNmZa2wa2F2eYqFl4d+eX+RaWNql3tzfnKEaGORfnJ7i3J+l3d7hnJ+tmRinK9iWWGwaK9itnagmZOenQ==";?>
+<?php
+require_once(__DIR__ . '/../include/bootstrap.php');
+$genu = mkl_pref('genu');

@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/../include/bootstrap.php');
 // hide all error
 error_reporting(0);
 if (!isset($_SESSION["mikhmon"])) {
@@ -25,7 +25,7 @@ $session = $_GET['session'];
 $ping = $_GET['ping'];
 if(isset($ping) && !empty($session)){
     include_once('../include/config.php');
-    $iphost = explode('!', $data[$session][1])[1];
+    $iphost = mkl_router($session)['host'];
     $host=explode(":",$iphost)[0];
     $port=explode(":",$iphost)[1];
     if(empty($port)){

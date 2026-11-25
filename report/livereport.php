@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/../include/bootstrap.php');
 // hide all error
 error_reporting(0);
 if (!isset($_SESSION["mikhmon"])) {
@@ -69,9 +69,7 @@ include('../lang/'.$langid.'.php');
     ));
     $TotalRHr = count($getSRHr);
     $_SESSION[$session.'totalHr'] = $TotalRHr;*/
-    $getSRBl = $API->comm("/system/script/print", array(
-      "?owner" => "$idbl",
-    ));
+    $getSRBl = mkl_report_fetch($API, 'month', $idbl);
     $TotalRBl = count($getSRBl);
     $_SESSION[$session.'totalBl'] = $TotalRBl;
 /*
@@ -83,11 +81,11 @@ include('../lang/'.$langid.'.php');
     foreach($getSRBl as $row){
     
       if((explode("-|-", $row['name'])[0]) == $idhr){
-         $tHr += explode("-|-", $row['name'])[3];
-         $TotalRHr += count($row['source']);
+         $tHr += mkl_num(explode("-|-", $row['name'])[3]);
+         $TotalRHr += 1; /*Modif line add (array) by github https://github.com/MasKawer*/
  
        }
-       $tBl += explode("-|-", $row['name'])[3];
+       $tBl += mkl_num(explode("-|-", $row['name'])[3]);
 
       if($TotalRHr == ""){
         $TotalRHr = "0";
@@ -110,13 +108,13 @@ include('../lang/'.$langid.'.php');
                         <div id="reloadLreport">
                         <?php 
                           if ($currency == in_array($currency, $cekindo['indo'])) {
-                            $dincome = number_format($tHr, 0, ",", ".");
-                            $mincome = number_format($tBl, 0, ",", ".");
+                            $dincome = number_format((float)$tHr, 0, ",", ".");
+                            $mincome = number_format((float)$tBl, 0, ",", ".");
                             $_SESSION[$session.'dincome'] = $dincome;
                             $_SESSION[$session.'mincome'] = $mincome;
                           }else{
-                            $dincome = number_format($tHr, 2);
-                            $mincome = number_format($tBl, 2);
+                            $dincome = number_format((float)$tHr, 2);
+                            $mincome = number_format((float)$tBl, 2);
                             $_SESSION[$session.'dincome'] = $dincome;
                             $_SESSION[$session.'mincome'] = $mincome;
                           }

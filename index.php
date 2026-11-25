@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-session_start();
+require_once(__DIR__ . '/include/bootstrap.php');
 // hide all error
 error_reporting(0);
 // check url
@@ -73,6 +73,7 @@ if (!isset($_SESSION["mikhmon"])) {
 
   $getidentity = $API->comm("/system/identity/print");
   $identity = $getidentity[0]['name'];
+  
 
 // get variable
   $hotspot = $_GET['hotspot'];
@@ -80,15 +81,15 @@ if (!isset($_SESSION["mikhmon"])) {
   $userbyname = $_GET['hotspot-user'];
   $removeuseractive = $_GET['remove-user-active'];
   $removehost = $_GET['remove-host'];
-  $clearuserdata = $_GET['clear-user-data'];
   $removecookie = $_GET['remove-cookie'];
   $removeipbinding = $_GET['remove-ip-binding'];
   $removehotspotuser = $_GET['remove-hotspot-user'];
-  $removehotspotmac = $_GET['remove-hotspot-mac'];
-  $macaddress = $_GET['mac-address'];
   $removehotspotusers = $_GET['remove-hotspot-users'];
   $removeuserprofile = $_GET['remove-user-profile'];
   $resethotspotuser = $_GET['reset-hotspot-user'];
+  $clearuserdata = $_GET['clear-user-data'];
+  $removehotspotmac = $_GET['remove-hotspot-mac'];
+  $repairscripts = $_GET['repair-scripts'];
   $removehotspotuserbycomment = $_GET['remove-hotspot-user-by-comment'];
   $removeexpiredhotspotuser = $_GET['remove-hotspot-user-expired'];
   $enablehotspotuser = $_GET['enable-hotspot-user'];
@@ -117,6 +118,7 @@ if (!isset($_SESSION["mikhmon"])) {
   $report = $_GET['report'];
   $removereport = $_GET['remove-report'];
   $minterface = $_GET['interface'];
+
 
   $pagehotspot = array('users','hosts','ipbinding','cookies','log','dhcp-leases');
   $pageppp = array('secrets','profiles','active',);
@@ -264,14 +266,6 @@ elseif ($hotspot == "list-quick-print") {
     include_once('./process/removehotspotuser.php');
   }
 
-  // remove hotspot mac address
-  elseif ($removehotspotmac != "" && $macaddress != "") {
-
-    echo "<b class='cl-w'><i class='fa fa-circle-o-notch fa-spin' style='font-size:24px'></i> Processing...</b>";
-
-    include_once('./process/removehotspotmac.php');
-  }
-
 // remove hotspot user by comment
   elseif ($removehotspotuserbycomment != "") {
     echo "<b class='cl-w'><i class='fa fa-circle-o-notch fa-spin' style='font-size:24px'></i> Processing...</b>";
@@ -286,13 +280,27 @@ elseif ($removeexpiredhotspotuser != "") {
   include_once('./process/removeexpiredhotspotuser.php');
 }  
 
-// clear hotspot user
+// clear hotspot user data (cookie, active session, mac lock)
   elseif ($clearuserdata != "") {
     echo "<b class='cl-w'><i class='fa fa-circle-o-notch fa-spin' style='font-size:24px'></i> Processing...</b>";
 
     include_once('./process/clearuserdata.php');
   }
-  
+
+// remove hotspot user mac lock
+  elseif ($removehotspotmac != "") {
+    echo "<b class='cl-w'><i class='fa fa-circle-o-notch fa-spin' style='font-size:24px'></i> Processing...</b>";
+
+    include_once('./process/removehotspotmac.php');
+  }
+
+// repair / upgrade profile scripts to the universal engine
+  elseif ($repairscripts != "") {
+    echo "<b class='cl-w'><i class='fa fa-circle-o-notch fa-spin' style='font-size:24px'></i> Processing...</b>";
+
+    include_once('./process/repairscripts.php');
+  }
+
 // reset hotspot user
   elseif ($resethotspotuser != "") {
     echo "<b class='cl-w'><i class='fa fa-circle-o-notch fa-spin' style='font-size:24px'></i> Processing...</b>";
@@ -347,10 +355,9 @@ elseif ($removeexpiredhotspotuser != "") {
     include_once('./hotspot/hotspotactive.php');
   }
 
-  // hotspot server
+// hotspot server
   elseif ($hotspot == "server") {
     $_SESSION['ubp'] = "";
-    $_SESSION['hua'] = "hotspotactive";
     $_SESSION['ubc'] = "";
     include_once('./hotspot/hotspotserver.php');
   }
