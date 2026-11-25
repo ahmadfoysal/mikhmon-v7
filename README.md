@@ -55,6 +55,30 @@ How it works:
 - Manual payment: the customer enters method, sender number and transaction ID; you approve or reject it.
 - The database is one SQLite file next to the tenant folder (`portal.sqlite`). Back it up together with the tenant folder and the key file.
 
+### Search engines (SEO)
+
+The landing page is built for search engines; nothing else needs to be installed:
+
+- two indexed addresses, English `https://mikhmonlive.com/` and Bangla `https://mikhmonlive.com/?hl=bn`, linked with `hreflang` and each with its own canonical URL, title and description,
+- structured data (JSON-LD): organisation, the service with the three packages and prices, and the FAQ (Google can show prices and questions in results),
+- Open Graph / Twitter cards with `assets/og-image.jpg`, so links shared on Facebook, WhatsApp or Messenger show a preview,
+- `/robots.txt` and `/sitemap.xml`,
+- account pages of the portal and every customer subdomain send `noindex`; the app folder also has a `robots.txt` that blocks crawling of customer subdomains.
+
+On nginx (aaPanel) add to the **portal** site configuration (Apache uses `portal/public/.htaccess`):
+
+```
+location = /robots.txt  { rewrite ^ /index.php?p=robots last; }
+location = /sitemap.xml { rewrite ^ /index.php?p=sitemap last; }
+```
+
+After going live:
+
+1. Add the site in [Google Search Console](https://search.google.com/search-console) with the *HTML tag* method and put the code in `google_site_verification` in `include/site.php` (Bing: `bing_site_verification`).
+2. Submit `https://mikhmonlive.com/sitemap.xml` there.
+3. Use HTTPS on the bare domain and redirect `www` to it, so only one address is indexed.
+4. Ranking also needs links: a Facebook page, YouTube setup videos, MikroTik groups and forums that link to the site help more than anything on the page itself.
+
 ### E-mail
 
 Set the SMTP account in the e-mail section of `include/site.php` (for example a mailbox created in aaPanel's mail server, or any SMTP service) and check it:

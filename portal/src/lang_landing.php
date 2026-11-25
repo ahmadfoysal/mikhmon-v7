@@ -38,6 +38,11 @@ function mkp_texts_landing()
 		'chosen_package' => array('en' => 'Selected package: %s', 'bn' => 'বেছে নেওয়া প্যাকেজ: %s'),
 		'upgrade_note' => array('en' => 'A paid order sets your plan to the chosen package and adds the years after your current paid period.', 'bn' => 'পেমেন্ট হলে আপনার প্ল্যান বেছে নেওয়া প্যাকেজে সেট হবে এবং বর্তমান মেয়াদের পরে বছরগুলো যোগ হবে।'),
 
+		// search engines (title about 60 characters, description about 155)
+		'seo_title' => array('en' => '%s: Mikhmon Online for MikroTik Hotspot Vouchers', 'bn' => '%s: অনলাইন Mikhmon, MikroTik হটস্পট ভাউচার সফটওয়্যার'),
+		'seo_desc' => array('en' => 'Cloud Mikhmon for MikroTik hotspots: vouchers, auto expiry, sales reports and a live dashboard. RouterOS v6 and v7.10+, no public IP. %s day free trial.',
+			'bn' => 'MikroTik হটস্পটের জন্য ক্লাউড Mikhmon: ভাউচার, স্বয়ংক্রিয় মেয়াদ, বিক্রির রিপোর্ট ও লাইভ ড্যাশবোর্ড। RouterOS v6 ও v7.10+, public IP লাগে না। %s দিন ফ্রি ট্রায়াল।'),
+
 		// landing navigation
 		'l_nav_features' => array('en' => 'Features', 'bn' => 'ফিচার'),
 		'l_nav_how' => array('en' => 'How it works', 'bn' => 'কীভাবে কাজ করে'),

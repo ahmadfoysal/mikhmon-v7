@@ -163,6 +163,31 @@ try:
     a = Browser(PP, 'mikhmon.test')
     ok('Create account' in a.go('./') and 'Most popular' in a.html and '৳1,200' in a.html and '৳3,000' in a.html and '৳7,500' in a.html, 'landing page with packages')
     ok('save 10%' in a.html and 'save 15%' in a.html and '৳2,700' in a.html and '৳19,125' in a.html, 'multi-year prices on the landing page')
+    # search engines
+    import xml.dom.minidom
+    def ld(html):
+        return json.loads(re.search(r'<script type="application/ld\+json">(.*?)</script>', html, re.S).group(1).replace('<\\/', '</'))
+    ok('<link rel="canonical" href="http://mikhmon.test/">' in a.html and 'hreflang="bn" href="http://mikhmon.test/?hl=bn"' in a.html
+       and 'property="og:image" content="http://mikhmon.test/assets/og-image.jpg"' in a.html and 'name="robots" content="index' in a.html, 'landing head tags')
+    ok(a.html.count('<h1') == 1 and '<main id="main">' in a.html and 'alt="MikhmonLive dashboard' in a.html, 'one h1, main landmark, image alt')
+    g = {x['@type']: x for x in ld(a.html)['@graph']}
+    offers = g['SoftwareApplication']['offers']
+    ok([o['price'] for o in offers] == ['1200', '3000', '7500'] and offers[0]['priceCurrency'] == 'BDT', 'packages in structured data')
+    ok(len(g['FAQPage']['mainEntity']) == 8 and g['FAQPage']['mainEntity'][1]['name'] == 'Do I need a public IP?', 'FAQ in structured data')
+    bn = Browser(PP, 'mikhmon.test')
+    bn.go('./?hl=bn')
+    ok('<html lang="bn">' in bn.html and '<link rel="canonical" href="http://mikhmon.test/?hl=bn">' in bn.html and 'অনলাইন Mikhmon' in bn.html
+       and 'bn_BD' in bn.html and ld(bn.html)['@graph'][3]['inLanguage'] == 'bn', 'Bangla address of the landing page')
+    raw = lambda path, host='mikhmon.test', port=PP: urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect).open(
+        urllib.request.Request('http://127.0.0.1:%d/%s' % (port, path), headers={'Host': host}))
+    r = raw('?p=robots')
+    body = r.read().decode()
+    ok(r.headers['Content-Type'].startswith('text/plain') and 'Sitemap: http://mikhmon.test/sitemap.xml' in body and 'Disallow: /?p=' in body and 'Set-Cookie' not in r.headers, 'robots.txt')
+    r = raw('?p=sitemap')
+    sm = xml.dom.minidom.parseString(r.read())
+    locs = [x.firstChild.data for x in sm.getElementsByTagName('loc')]
+    ok(locs == ['http://mikhmon.test/', 'http://mikhmon.test/?hl=bn'] and len(sm.getElementsByTagName('xhtml:link')) == 6, 'sitemap.xml: %s' % locs)
+    ok(raw('?p=login').headers.get('X-Robots-Tag') == 'noindex, nofollow' and raw('').headers.get('X-Robots-Tag') is None, 'account pages noindex, landing indexable')
     a.go('?p=register&plan=business')
     ok('Selected package: Business' in a.html, 'package chosen on the landing page is remembered')
     ok(Browser(PP, 'alice1.mikhmon.test').go('./') and 'Not found' in Browser(PP, 'alice1.mikhmon.test').go('./'), 'portal refuses customer hosts')
@@ -179,6 +204,11 @@ try:
     t = tenant('alice1')
     ok(t['plan'] == 'unverified' and t['expires'] < today, 'new account is closed until the address is confirmed: %s' % t)
     ok('Email not confirmed' in Browser(AP, 'alice1.mikhmon.test').go('admin.php?id=login'), 'Mikhmon is closed before confirmation')
+    try:
+        hdr = urllib.request.build_opener(urllib.request.ProxyHandler({})).open(urllib.request.Request('http://127.0.0.1:%d/admin.php?id=login' % AP, headers={'Host': 'alice1.mikhmon.test'})).headers
+    except urllib.error.HTTPError as ex:
+        hdr = ex.headers
+    ok(hdr.get('X-Robots-Tag') == 'noindex, nofollow', 'customer subdomains are noindex')
     a.post('?p=vpn-add', {'name': 'Early', 'type': 'wg'}, form='?p=vpn')
     ok('confirm your email address first' in a.html and not os.path.exists(os.path.join(DATA, 'vpn', 'wg-peers.conf')), 'no router connection before confirmation')
 

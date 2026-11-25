@@ -74,6 +74,8 @@ if (!defined('MKL_ROOT')) {
 				'paystation_sandbox' => false,
 				'paystation_url' => '',       // override the API base URL (tests)
 				'support_contact' => '',
+				'google_site_verification' => '', // content of the Google Search Console meta tag
+				'bing_site_verification' => '',   // content of the Bing Webmaster msvalidate.01 tag
 
 				// ---- e-mail (portal) ----
 				'smtp_host' => '',            // '' = no e-mail
@@ -172,6 +174,10 @@ if (!defined('MKL_ROOT')) {
 			return;
 		}
 
+		// customer subdomains are private, also their error pages: keep them out of search engines
+		if (PHP_SAPI !== 'cli' && !headers_sent()) {
+			header('X-Robots-Tag: noindex, nofollow');
+		}
 		$tenant = PHP_SAPI === 'cli' ? (string)getenv('MKL_TENANT') : mkl_tenant_from_host(isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '');
 		if (!mkl_valid_tenant($tenant) || !is_dir(mkl_tenant_dir($tenant))) {
 			mkl_stop(404, 'Account not found', 'There is no account at this address.');

@@ -92,6 +92,7 @@ function v_landing()
 	$base = e(mkl_site('base_domain'));
 	$trial = (int)mkl_site('trial_days');
 	$other = mkp_lang() == 'bn' ? array('en', 'English') : array('bn', 'বাংলা');
+	require_once(__DIR__ . '/seo.php');
 	$start = e(mkp_url('register'));
 
 	$feats = array(array('ticket', 'f1'), array('clock', 'f2'), array('chart', 'f3'), array('pulse', 'f4'), array('tunnel', 'f5'),
@@ -128,18 +129,18 @@ function v_landing()
 
 	return '<!DOCTYPE html><html lang="' . mkp_lang() . '"><head><meta charset="utf-8">'
 		. '<meta name="viewport" content="width=device-width, initial-scale=1">'
-		. '<title>' . $brand . ' - ' . e(t('l_title_1')) . ' ' . e(t('l_title_2')) . '</title>'
-		. '<meta name="description" content="' . e(t('l_sub')) . '">'
+		. mkp_seo_head()
 		. '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
 		. '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">'
 		. '<link rel="stylesheet" href="assets/landing.css?v=1"></head><body class="lp ' . mkp_lang() . '">'
 
 		// navigation
-		. '<header class="lnav"><div class="wrap"><a class="logo" href="./">' . v_icon('wifi') . $brand . '</a>'
+		. '<header class="lnav"><div class="wrap"><a class="logo" href="./' . (mkp_lang() == 'bn' ? '?hl=bn' : '') . '" aria-label="' . $brand . '">' . v_icon('wifi') . $brand . '</a>'
 		. '<nav><a href="#features">' . e(t('l_nav_features')) . '</a><a href="#how">' . e(t('l_nav_how')) . '</a><a href="#pricing">' . e(t('l_nav_pricing')) . '</a><a href="#faq">' . e(t('l_nav_faq')) . '</a></nav>'
-		. '<div class="lnav-r"><a class="lang" href="' . e(mkp_url('lang', array('l' => $other[0]))) . '">' . $other[1] . '</a>'
+		. '<div class="lnav-r"><a class="lang" href="./?hl=' . $other[0] . '" hreflang="' . $other[0] . '" lang="' . $other[0] . '">' . $other[1] . '</a>'
 		. '<a class="login" href="' . e(mkp_url('login')) . '">' . e(t('nav_login')) . '</a><a class="lbtn solid sm" href="' . $start . '">' . e(t('l_start')) . '</a></div></div></header>'
 
+		. '<main id="main">'
 		// hero
 		. '<section class="hero"><div class="glow g1"></div><div class="glow g2"></div><div class="wrap hero-in"><div class="hero-copy">'
 		. '<span class="kick">' . v_icon('check') . e(t('l_badge')) . '</span>'
@@ -184,6 +185,7 @@ function v_landing()
 		. '<section class="final"><div class="wrap final-in"><h2>' . e(t('l_final_title')) . '</h2><p>' . e(t('l_final_text', array(mkl_site('base_domain')))) . '</p>'
 		. '<a class="lbtn light lg" href="' . $start . '">' . e($cta) . v_icon('arrow') . '</a></div></section>'
 
+		. '</main>'
 		. '<footer class="lfoot"><div class="wrap"><div class="logo">' . v_icon('wifi') . $brand . '</div><p>' . e(t('l_footer')) . '</p>'
 		. '<p class="links"><a href="' . e(mkp_url('login')) . '">' . e(t('nav_login')) . '</a><a href="' . $start . '">' . e(t('nav_register')) . '</a>'
 		. (mkl_site('support_contact') != '' ? '<a href="mailto:' . e(mkl_site('support_contact')) . '">' . e(mkl_site('support_contact')) . '</a>' : '') . '</p></div></footer>'

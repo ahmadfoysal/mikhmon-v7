@@ -37,6 +37,11 @@ return array(
 	'require_verified' => true,
 	'support_contact' => 'support@mikhmonlive.com',
 
+	// Search engines: paste the code of the HTML tag method from
+	// Google Search Console / Bing Webmaster Tools (only the content="..." value).
+	'google_site_verification' => '',
+	'bing_site_verification' => '',
+
 	// Manual payment: shown on the billing page; the customer sends the transaction ID
 	// and you approve the order in the portal (Admin). '' switches manual payment off.
 	'manual_payment' => "bKash / Nagad (Send Money): 01XXXXXXXXX",

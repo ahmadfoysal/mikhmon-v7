@@ -27,7 +27,8 @@ function v_layout($title, $body, $active = '')
 	$msg = $flash ? '<div class="msg ' . e($flash[0]) . '">' . e($flash[1]) . '</div>' : '';
 	return '<!DOCTYPE html><html lang="' . mkp_lang() . '"><head><meta charset="utf-8">'
 		. '<meta name="viewport" content="width=device-width, initial-scale=1">'
-		. '<title>' . e($title) . ' - ' . $brand . '</title><link rel="stylesheet" href="assets/portal.css?v=1"></head><body>'
+		. '<title>' . e($title) . ' - ' . $brand . '</title><meta name="robots" content="noindex,nofollow"><link rel="icon" type="image/png" href="assets/favicon.png">'
+		. '<link rel="stylesheet" href="assets/portal.css?v=1"></head><body>'
 		. '<div class="top"><div class="in"><a class="brand" href="' . e(mkp_url($u ? 'dashboard' : '')) . '">' . $brand . '</a>' . $links . '</div></div>'
 		. '<main><div class="in">' . $msg . $body . '</div></main>'
 		. '<footer><div class="in">' . $brand . ' &middot; based on MIKHMON by Laksamadi Guko (GPL v2)'
