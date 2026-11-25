@@ -78,8 +78,28 @@ function v_login($email = '', $error = '')
 		. '<label for="pass">' . e(t('password')) . '</label><input id="pass" type="password" name="pass" autocomplete="current-password" required>'
 		. '<div class="row"><button class="btn" type="submit">' . e(t('login_btn')) . '</button></div></form>'
 		. '<p class="mute" style="margin-top:16px">' . e(t('no_account')) . ' <a href="' . e(mkp_url('register')) . '">' . e(t('nav_register')) . '</a></p>'
-		. (mkl_site('support_contact') != '' ? '<p class="mute">' . e(t('forgot', array(mkl_site('support_contact')))) . '</p>' : '') . '</div>';
+		. (mkp_mail_enabled() ? '<p class="mute"><a href="' . e(mkp_url('forgot')) . '">' . e(t('forgot_link')) . '</a></p>'
+			: (mkl_site('support_contact') != '' ? '<p class="mute">' . e(t('forgot', array(mkl_site('support_contact')))) . '</p>' : '')) . '</div>';
 	return v_layout(t('nav_login'), $b, 'login');
+}
+
+function v_forgot()
+{
+	$b = '<div class="card narrow"><h2>' . e(t('forgot_title')) . '</h2><p>' . e(t('forgot_text')) . '</p>'
+		. '<form method="post" action="' . e(mkp_url('forgot')) . '">' . mkp_csrf_field()
+		. '<label for="email">' . e(t('email')) . '</label><input id="email" type="email" name="email" required autofocus>'
+		. '<div class="row"><button class="btn" type="submit">' . e(t('forgot_btn')) . '</button>'
+		. '<a href="' . e(mkp_url('login')) . '">' . e(t('nav_login')) . '</a></div></form></div>';
+	return v_layout(t('forgot_title'), $b, 'login');
+}
+
+function v_reset($token, $error = '')
+{
+	$b = '<div class="card narrow"><h2>' . e(t('reset_title')) . '</h2>' . ($error != '' ? '<div class="msg bad">' . e($error) . '</div>' : '')
+		. '<form method="post" action="' . e(mkp_url('reset')) . '">' . mkp_csrf_field() . '<input type="hidden" name="token" value="' . e($token) . '">'
+		. '<label for="pass">' . e(t('new_password')) . '</label><input id="pass" type="password" name="pass" minlength="8" autocomplete="new-password" required autofocus>'
+		. '<p class="mute">' . e(t('password_hint')) . '</p><div class="row"><button class="btn" type="submit">' . e(t('save')) . '</button></div></form></div>';
+	return v_layout(t('reset_title'), $b, 'login');
 }
 
 function v_state_tag($s)
@@ -101,7 +121,12 @@ function v_dashboard($u)
 	$s = mkp_subscription($u);
 	$url = mkp_tenant_url($u['tenant']);
 	$open = in_array($s['state'], array('trial', 'active'), true);
-	$b = '<h1>' . e(t('welcome', array($u['name']))) . '</h1><div class="grid">'
+	$verify = '';
+	if (mkp_mail_enabled() && !$u['email_verified']) {
+		$verify = '<div class="msg warn">' . e(t('verify_ask', array($u['email']))) . ' <form class="inline" method="post" action="' . e(mkp_url('verify-resend')) . '">'
+			. mkp_csrf_field() . '<button class="btn sm alt" type="submit">' . e(t('verify_resend')) . '</button></form></div>';
+	}
+	$b = '<h1>' . e(t('welcome', array($u['name']))) . '</h1>' . $verify . '<div class="grid">'
 		. '<div class="card"><h2>' . e(t('your_mikhmon')) . '</h2><p><a href="' . e($url) . '">' . e(preg_replace('~^https://~', '', $url)) . '</a></p>'
 		. ($open ? '<div class="row"><a class="btn" href="' . e(mkp_url('open')) . '">' . e(t('open_mikhmon')) . '</a></div>' : '')
 		. '<p class="mute" style="margin-top:12px">' . e(t('mikhmon_login', array($u['tenant']))) . '</p></div>'
@@ -259,7 +284,7 @@ function v_admin()
 		$s = mkp_subscription($c);
 		$vpn = (int)mkp_row('SELECT COUNT(*) c FROM vpn_peers WHERE user_id = ?', array($c['id']))['c'];
 		$b .= '<tr><td><a href="' . e(mkp_tenant_url($c['tenant'])) . '">' . e($c['tenant']) . '</a></td><td>' . e($c['name']) . '<br><span class="mute">' . e($c['email']) . ' ' . e($c['phone'])
-			. '</span></td><td>' . v_state_tag($s) . '</td><td>' . e($s['expires']) . '</td><td>' . (int)$s['routers_used'] . ' / ' . ($s['max_routers'] > 0 ? (int)$s['max_routers'] : '&infin;')
+			. ($c['email_verified'] ? '' : ' (unverified)') . '</span></td><td>' . v_state_tag($s) . '</td><td>' . e($s['expires']) . '</td><td>' . (int)$s['routers_used'] . ' / ' . ($s['max_routers'] > 0 ? (int)$s['max_routers'] : '&infin;')
 			. '</td><td>' . $vpn . '</td><td><a class="btn sm alt" href="' . e(mkp_url('admin-user', array('id' => $c['id']))) . '">Edit</a></td></tr>';
 	}
 	$paid = mkp_row('SELECT COUNT(*) c, COALESCE(SUM(amount), 0) s FROM orders WHERE status = "paid" AND method != "admin"');

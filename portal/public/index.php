@@ -61,11 +61,11 @@ if ($post) {
 	mkp_csrf_check();
 }
 
-$public = array('', 'login', 'register', 'lang', 'pay-return');
+$public = array('', 'login', 'register', 'lang', 'pay-return', 'verify', 'forgot', 'reset');
 if (!$u && !in_array($p, $public, true)) {
 	mkp_redirect('login');
 }
-if ($u && in_array($p, array('', 'login', 'register'), true)) {
+if ($u && in_array($p, array('', 'login', 'register', 'forgot', 'reset'), true)) {
 	mkp_redirect('dashboard');
 }
 if (substr($p, 0, 5) == 'admin' && (!$u || !$u['is_admin'])) {
@@ -79,6 +79,10 @@ switch ($p) {
 
 	case 'lang':
 		$_SESSION['lang'] = (isset($_GET['l']) && $_GET['l'] == 'bn') ? 'bn' : 'en';
+		if ($u) {
+			// e-mails follow the language the customer uses
+			mkp_q('UPDATE users SET lang = ? WHERE id = ?', array($_SESSION['lang'], $u['id']));
+		}
 		mkp_redirect($u ? 'dashboard' : '');
 		break;
 
@@ -95,6 +99,7 @@ switch ($p) {
 				break;
 			}
 			mkp_throttle('reg|' . mkp_ip(), 5, 3600);
+			mkp_mail_verify(mkp_row('SELECT * FROM users WHERE id = ?', array($id)));
 			session_regenerate_id(true);
 			$_SESSION['uid'] = $id;
 			mkp_redirect('dashboard');
@@ -119,9 +124,72 @@ switch ($p) {
 			}
 			session_regenerate_id(true);
 			$_SESSION['uid'] = $found['id'];
+			$_SESSION['lang'] = $found['lang'] == 'bn' ? 'bn' : (isset($_SESSION['lang']) ? $_SESSION['lang'] : 'en');
 			mkp_redirect('dashboard');
 		}
 		echo v_login();
+		break;
+
+	case 'verify':
+		// link from the welcome mail
+		$v = mkp_token_user(isset($_GET['token']) ? $_GET['token'] : '', 'verify', true);
+		if ($v) {
+			mkp_q('UPDATE users SET email_verified = 1 WHERE id = ?', array($v['id']));
+			mkp_flash(t('verify_ok'));
+		} else {
+			mkp_flash(t('link_bad'), 'bad');
+		}
+		mkp_redirect($u ? 'dashboard' : 'login');
+		break;
+
+	case 'verify-resend':
+		if ($post && !$u['email_verified'] && mkp_throttle('verify|' . $u['id'], 3, 3600)) {
+			mkp_flash(mkp_mail_verify($u) ? t('verify_sent', array($u['email'])) : t('mail_failed'), 'warn');
+		}
+		mkp_redirect('dashboard');
+		break;
+
+	case 'forgot':
+		if (!mkp_mail_enabled()) {
+			mkp_redirect('login');
+		}
+		if ($post) {
+			$email = strtolower(mkp_post('email', 120));
+			// same answer whether the address is known or not
+			if (mkp_throttle('forgot|' . mkp_ip(), 5, 3600) && mkp_throttle('forgot|' . $email, 3, 3600)) {
+				$f = mkp_row('SELECT * FROM users WHERE email = ?', array($email));
+				if ($f) {
+					mkp_mail_reset($f);
+				}
+			}
+			mkp_flash(t('forgot_sent'));
+			mkp_redirect('login');
+		}
+		echo v_forgot();
+		break;
+
+	case 'reset':
+		$token = isset($_REQUEST['token']) && is_string($_REQUEST['token']) ? $_REQUEST['token'] : '';
+		if (!mkp_token_user($token, 'reset', false)) {
+			mkp_flash(t('link_bad'), 'bad');
+			mkp_redirect('login');
+		}
+		if ($post) {
+			$new = isset($_POST['pass']) ? (string)$_POST['pass'] : '';
+			if (strlen($new) < 8) {
+				echo v_reset($token, t('err_password'));
+				break;
+			}
+			$r = mkp_token_user($token, 'reset', true);
+			if ($r) {
+				mkp_set_password($r, $new);
+				// whoever opens the link owns the mailbox
+				mkp_q('UPDATE users SET email_verified = 1 WHERE id = ?', array($r['id']));
+				mkp_flash(t('reset_ok'));
+			}
+			mkp_redirect('login');
+		}
+		echo v_reset($token);
 		break;
 
 	case 'logout':
@@ -159,6 +227,7 @@ switch ($p) {
 				echo v_billing($u, $err);
 				break;
 			}
+			mkp_mail_admin_order(mkp_row('SELECT * FROM orders WHERE id = ?', array($oid)), $u);
 			mkp_flash(t('manual_wait'));
 			mkp_redirect('billing');
 		}
@@ -274,6 +343,7 @@ switch ($p) {
 				mkp_flash('Order ' . $o['invoice'] . ' approved.');
 			} elseif (mkp_post('do', 10) == 'reject') {
 				mkp_order_set($o['id'], 'rejected');
+				mkp_mail_order($o, 'rejected');
 				mkp_flash('Order ' . $o['invoice'] . ' rejected.', 'warn');
 			}
 		}

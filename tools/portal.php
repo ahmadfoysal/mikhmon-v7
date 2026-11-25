@@ -6,6 +6,8 @@
  *   php tools/portal.php noadmin <email>     take the admin right away
  *   php tools/portal.php vpn-sync            rewrite the VPN state files (run daily from cron:
  *                                            tunnels of expired accounts are switched off)
+ *   php tools/portal.php reminders           send the expiry reminder mails (run daily from cron)
+ *   php tools/portal.php mail-test <email>   send a test mail to check the SMTP settings
  *   php tools/portal.php stats
  */
 if (PHP_SAPI !== 'cli') {
@@ -32,10 +34,23 @@ if ($cmd == 'admin' || $cmd == 'noadmin') {
 } elseif ($cmd == 'vpn-sync') {
 	mkp_vpn_write_state();
 	echo "VPN state written to " . mkp_vpn_dir() . "\n";
+} elseif ($cmd == 'reminders') {
+	echo mkp_mail_enabled() ? mkp_mail_reminders() . " reminder(s) sent\n" : "E-mail is not configured (smtp_host, mail_from).\n";
+} elseif ($cmd == 'mail-test') {
+	if (!mkp_mail_enabled()) {
+		fwrite(STDERR, "E-mail is not configured (smtp_host, mail_from in include/site.php).\n");
+		exit(1);
+	}
+	if (mkp_mail_send($arg, mkl_site('brand') . ' test mail', "This is a test.\nএটি একটি পরীক্ষামূলক ইমেইল।\n")) {
+		echo "Sent to $arg.\n";
+	} else {
+		fwrite(STDERR, "Sending failed. See " . mkp_data_root() . "/mail-errors.log\n");
+		exit(1);
+	}
 } elseif ($cmd == 'stats') {
 	$r = mkp_row('SELECT (SELECT COUNT(*) FROM users) u, (SELECT COUNT(*) FROM orders WHERE status = "pending") p, (SELECT COUNT(*) FROM vpn_peers) v');
 	echo "customers: {$r['u']}  pending orders: {$r['p']}  vpn connections: {$r['v']}\n";
 } else {
-	echo preg_replace('/^ \* ?/m', '', substr(file_get_contents(__FILE__), 9, 470)), "\n";
+	echo preg_replace('/^ \* ?/m', '', substr(file_get_contents(__FILE__), 9, 680)), "\n";
 	exit(1);
 }

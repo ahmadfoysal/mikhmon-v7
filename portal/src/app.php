@@ -20,6 +20,7 @@ if (!defined('MKP_ROOT')) {
 	require_once(__DIR__ . '/lang.php');
 	require_once(__DIR__ . '/vpn.php');
 	require_once(__DIR__ . '/paystation.php');
+	require_once(__DIR__ . '/mail.php');
 
 	/* ------------------------------------------------------------------ */
 	/*  Database (SQLite)                                                  */
@@ -80,6 +81,24 @@ if (!defined('MKP_ROOT')) {
 			created_at TEXT NOT NULL)');
 		$db->exec('CREATE TABLE IF NOT EXISTS throttle (
 			k TEXT PRIMARY KEY, n INTEGER NOT NULL, ts INTEGER NOT NULL)');
+		$db->exec('CREATE TABLE IF NOT EXISTS tokens (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL REFERENCES users(id),
+			kind TEXT NOT NULL, hash TEXT NOT NULL UNIQUE, expires INTEGER NOT NULL)');
+		$db->exec('CREATE TABLE IF NOT EXISTS mail_log (
+			user_id INTEGER NOT NULL, kind TEXT NOT NULL, ref TEXT NOT NULL, sent_at TEXT NOT NULL,
+			PRIMARY KEY (user_id, kind, ref))');
+		// columns added after the first release
+		$cols = array();
+		foreach ($db->query('PRAGMA table_info(users)') as $c) {
+			$cols[$c['name']] = true;
+		}
+		if (!isset($cols['email_verified'])) {
+			$db->exec('ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0');
+		}
+		if (!isset($cols['lang'])) {
+			$db->exec('ALTER TABLE users ADD COLUMN lang TEXT NOT NULL DEFAULT "en"');
+		}
 		return $db;
 	}
 
@@ -248,8 +267,8 @@ if (!defined('MKP_ROOT')) {
 			return array(0, $err);
 		}
 		mkl_admin_set_hash($tenant, $hash, mkl_tenant_dir($tenant));
-		mkp_q('INSERT INTO users (email, name, phone, pass_hash, tenant, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-			array($email, trim((string)$name), trim((string)$phone), $hash, $tenant, mkp_now()));
+		mkp_q('INSERT INTO users (email, name, phone, pass_hash, tenant, lang, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+			array($email, trim((string)$name), trim((string)$phone), $hash, $tenant, mkp_lang(), mkp_now()));
 		return array((int)mkp_db()->lastInsertId(), '');
 	}
 
@@ -264,6 +283,8 @@ if (!defined('MKP_ROOT')) {
 	{
 		$hash = password_hash((string)$pass, PASSWORD_DEFAULT);
 		mkp_q('UPDATE users SET pass_hash = ? WHERE id = ?', array($hash, $user['id']));
+		// links from older reset mails stop working
+		mkp_q('DELETE FROM tokens WHERE user_id = ? AND kind = "reset"', array($user['id']));
 		if (is_dir(mkl_tenant_dir($user['tenant']))) {
 			mkl_admin_set_hash('', $hash, mkl_tenant_dir($user['tenant']));
 		}
@@ -345,6 +366,9 @@ if (!defined('MKP_ROOT')) {
 			'status' => 'active',
 		));
 		mkp_vpn_write_state(); // tunnels of a renewed account come back
+		if ($o['method'] != 'admin') {
+			mkp_mail_order($o, 'paid');
+		}
 		return true;
 	}
 

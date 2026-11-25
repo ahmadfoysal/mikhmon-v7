@@ -55,7 +55,27 @@ How it works:
 - Manual payment: the customer enters method, sender number and transaction ID; you approve or reject it.
 - The database is one SQLite file next to the tenant folder (`portal.sqlite`). Back it up together with the tenant folder and the key file.
 
-Not included yet: e-mail (verification, password reset by mail, expiry reminders). A lost password is reset by the admin.
+### E-mail
+
+Set the SMTP account in the e-mail section of `include/site.php` (for example a mailbox created in aaPanel's mail server, or any SMTP service) and check it:
+
+```
+php tools/portal.php mail-test you@example.com
+```
+
+With e-mail switched on the portal sends, in the customer's language (English or Bangla):
+
+- a welcome mail with a link to confirm the address (the dashboard shows a notice until it is confirmed; nothing is blocked),
+- a password reset link (valid one hour, works once; **Forgot your password?** on the login page),
+- a receipt when an order is paid and a notice when a manual payment is rejected,
+- to `admin_email`: a notice for every manual payment waiting for approval,
+- expiry reminders 7 days and 1 day before the end and once after it. Add this to cron (as the web user):
+
+```
+30 9 * * * php /www/wwwroot/<site>/tools/portal.php reminders
+```
+
+Without `smtp_host` no mail is sent and a lost password is reset by the admin. Failed sends are written to `mail-errors.log` in the data folder. For good delivery set SPF and DKIM records for the sender domain.
 
 ## VPN onboarding (routers without a public IP)
 
@@ -90,9 +110,10 @@ The mock router does not run RouterOS scripts. Check these on a real router of e
 5. After the validity passes (plus up to ~3 minutes) the user is removed and disconnected.
 6. Repeat with *Notice & Record*: the user stays, with `limit-uptime=1s`.
 
-The mock router does not run RouterOS scripts, and nothing here starts a real VPN server or talks to the real PayStation. Before going live also check:
+The mock router does not run RouterOS scripts, and nothing here starts a real VPN server, talks to the real PayStation or uses a real mail server (the test mail server speaks plain SMTP; the SSL and STARTTLS paths are not covered). Before going live also check:
 
 - `tools/vpn/install.sh` on the real server, then one v7 router (WireGuard) and one v6 router (L2TP/IPsec) with the pasted script: the tunnel comes up and Mikhmon connects.
 - One PayStation sandbox payment end to end.
+- `php tools/portal.php mail-test <your address>` with the real SMTP account.
 
 Do not deploy `tests/` and `tools/` to a public web root without the deny rules above.

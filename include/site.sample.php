@@ -36,6 +36,17 @@ return array(
 	'paystation_password' => '',
 	'paystation_sandbox' => false,
 
+	// ---------------- e-mail ----------------
+	// SMTP account used for verification, password reset, receipts and expiry
+	// reminders. Leave smtp_host empty to run without e-mail.
+	'smtp_host' => '',                 // e.g. mail.mikhmonlive.com
+	'smtp_port' => 465,
+	'smtp_secure' => 'ssl',            // ssl (465) | tls (587, STARTTLS)
+	'smtp_user' => '',                 // e.g. noreply@mikhmonlive.com
+	'smtp_pass' => '',
+	'mail_from' => '',                 // e.g. noreply@mikhmonlive.com
+	'admin_email' => '',               // you: gets a notice for every manual payment
+
 	// ---------------- VPN onboarding (after tools/vpn/install.sh) ----------------
 	// Public DNS name of this server for the router tunnels. '' = VPN page off.
 	'vpn_host' => '',

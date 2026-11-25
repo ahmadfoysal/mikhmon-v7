@@ -68,6 +68,16 @@ if (!defined('MKL_ROOT')) {
 				'paystation_url' => '',       // override the API base URL (tests)
 				'support_contact' => '',
 
+				// ---- e-mail (portal) ----
+				'smtp_host' => '',            // '' = no e-mail
+				'smtp_port' => 0,             // 0 = 465 (ssl), 587 (tls) or 25
+				'smtp_secure' => 'ssl',       // ssl | tls | ''
+				'smtp_user' => '',
+				'smtp_pass' => '',
+				'mail_from' => '',            // e.g. noreply@mikhmonlive.com
+				'mail_from_name' => '',       // default: brand
+				'admin_email' => '',          // gets a notice for every manual payment
+
 				// ---- VPN onboarding (tools/vpn/install.sh) ----
 				'vpn_host' => '',             // public name of the VPN server, e.g. vpn.mikhmonlive.com ('' = VPN off)
 				'vpn_server_ip' => '10.99.0.1',
