@@ -24,6 +24,9 @@ return array(
 	'price_per_router' => 1000,     // one router, one year
 	'trial_days' => 7,              // 0 = no free trial: the account opens after the first payment
 	'trial_routers' => 1,
+	// With e-mail switched on, a new account stays closed until the customer confirms
+	// the address; the trial starts on that day. false = open at once.
+	'require_verified' => true,
 	'support_contact' => 'support@mikhmonlive.com',
 
 	// Manual payment: shown on the billing page; the customer sends the transaction ID

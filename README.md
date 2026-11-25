@@ -65,7 +65,7 @@ php tools/portal.php mail-test you@example.com
 
 With e-mail switched on the portal sends, in the customer's language (English or Bangla):
 
-- a welcome mail with a link to confirm the address (the dashboard shows a notice until it is confirmed; nothing is blocked),
+- a welcome mail with a link to confirm the address. While `require_verified` is true (default) the new account stays closed until then: Mikhmon shows *Email not confirmed*, no router can be connected, and the free trial starts on the day of confirmation. Paying an order or a password reset by mail also opens it; the admin can mark an address as confirmed. `php tools/portal.php purge-unverified 7` removes empty accounts that never confirmed (frees their subdomain); run it from cron if you like,
 - a password reset link (valid one hour, works once; **Forgot your password?** on the login page),
 - a receipt when an order is paid and a notice when a manual payment is rejected,
 - to `admin_email`: a notice for every manual payment waiting for approval,

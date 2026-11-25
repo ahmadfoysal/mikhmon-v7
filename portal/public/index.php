@@ -134,8 +134,9 @@ switch ($p) {
 		// link from the welcome mail
 		$v = mkp_token_user(isset($_GET['token']) ? $_GET['token'] : '', 'verify', true);
 		if ($v) {
-			mkp_q('UPDATE users SET email_verified = 1 WHERE id = ?', array($v['id']));
-			mkp_flash(t('verify_ok'));
+			$waiting = mkp_subscription($v)['state'] == 'unverified';
+			mkp_mark_verified($v);
+			mkp_flash(t($waiting && (int)mkl_site('trial_days') > 0 ? 'verify_ok_trial' : 'verify_ok', array((int)mkl_site('trial_days'))));
 		} else {
 			mkp_flash(t('link_bad'), 'bad');
 		}
@@ -184,7 +185,7 @@ switch ($p) {
 			if ($r) {
 				mkp_set_password($r, $new);
 				// whoever opens the link owns the mailbox
-				mkp_q('UPDATE users SET email_verified = 1 WHERE id = ?', array($r['id']));
+				mkp_mark_verified($r);
 				mkp_flash(t('reset_ok'));
 			}
 			mkp_redirect('login');
@@ -287,6 +288,10 @@ switch ($p) {
 			mkp_redirect('vpn');
 		}
 		$sub = mkp_subscription($u);
+		if ($sub['state'] == 'unverified') {
+			mkp_flash(t('verify_first'), 'warn');
+			mkp_redirect('dashboard');
+		}
 		if (!in_array($sub['state'], array('trial', 'active'), true)) {
 			mkp_redirect('billing');
 		}
@@ -365,6 +370,11 @@ switch ($p) {
 			));
 			mkp_vpn_write_state();
 			mkp_flash($ok ? 'Saved.' : 'Invalid date.', $ok ? 'ok' : 'bad');
+			mkp_redirect('admin-user', array('id' => $c['id']));
+		}
+		if ($post && mkp_post('what', 10) == 'verify') {
+			mkp_mark_verified($c);
+			mkp_flash('Marked as confirmed.');
 			mkp_redirect('admin-user', array('id' => $c['id']));
 		}
 		if ($post && mkp_post('what', 10) == 'pass') {

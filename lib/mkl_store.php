@@ -60,6 +60,7 @@ if (!defined('MKL_ROOT')) {
 				'price_per_router' => 1000,   // price of one router for one year
 				'trial_days' => 7,            // free trial after registration (0 = none)
 				'trial_routers' => 1,
+				'require_verified' => true,   // with e-mail on: the trial starts when the address is confirmed
 				'max_routers_order' => 50,    // largest router count a customer can order online
 				'manual_payment' => '',       // instructions shown for manual payment (bKash/Nagad number ...)
 				'paystation_merchant' => '',  // PayStation merchantId ('' = online payment off)
@@ -175,6 +176,9 @@ if (!defined('MKL_ROOT')) {
 		$t = mkl_tenant_info();
 		if ($t['status'] != 'active') {
 			mkl_stop(403, 'Account suspended', 'This account is not active. Please contact support.');
+		}
+		if ($t['plan'] == 'unverified') {
+			mkl_stop(403, 'Email not confirmed', 'This account opens as soon as its owner confirms the email address. Please use the link in the welcome email.');
 		}
 		if ($t['expires'] != '' && $t['expires'] < date('Y-m-d')) {
 			mkl_stop(403, 'Subscription expired', 'The subscription of this account ended on ' . $t['expires'] . '. Please renew to continue.');

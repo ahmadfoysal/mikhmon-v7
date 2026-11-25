@@ -104,13 +104,13 @@ function v_reset($token, $error = '')
 
 function v_state_tag($s)
 {
-	$cls = array('trial' => 'warn', 'active' => 'ok', 'expired' => 'bad', 'suspended' => 'bad');
+	$cls = array('trial' => 'warn', 'active' => 'ok', 'expired' => 'bad', 'suspended' => 'bad', 'unverified' => 'warn');
 	return '<span class="tag ' . $cls[$s['state']] . '">' . e(t('state_' . $s['state'])) . '</span>';
 }
 
 function v_sub_line($s)
 {
-	if ($s['expires'] == '') {
+	if ($s['expires'] == '' || $s['state'] == 'unverified') {
 		return '';
 	}
 	return e($s['days_left'] >= 0 ? t('valid_until', array($s['expires'], $s['days_left'])) : t('ended_on', array($s['expires'])));
@@ -123,7 +123,7 @@ function v_dashboard($u)
 	$open = in_array($s['state'], array('trial', 'active'), true);
 	$verify = '';
 	if (mkp_mail_enabled() && !$u['email_verified']) {
-		$verify = '<div class="msg warn">' . e(t('verify_ask', array($u['email']))) . ' <form class="inline" method="post" action="' . e(mkp_url('verify-resend')) . '">'
+		$verify = '<div class="msg warn">' . e(t($s['state'] == 'unverified' ? 'verify_ask_closed' : 'verify_ask', array($u['email']))) . ' <form class="inline" method="post" action="' . e(mkp_url('verify-resend')) . '">'
 			. mkp_csrf_field() . '<button class="btn sm alt" type="submit">' . e(t('verify_resend')) . '</button></form></div>';
 	}
 	$b = '<h1>' . e(t('welcome', array($u['name']))) . '</h1>' . $verify . '<div class="grid">'
@@ -303,6 +303,9 @@ function v_admin_user($c)
 		. '<label for="st">Status</label><select id="st" name="status"><option value="active"' . ($s['status'] == 'active' ? ' selected' : '') . '>active</option><option value="suspended"'
 		. ($s['status'] != 'active' ? ' selected' : '') . '>suspended</option></select>'
 		. '<div class="row"><button class="btn" type="submit">Save</button></div></form></div>'
+		. ($c['email_verified'] ? '' : '<div class="card"><h2>Email not confirmed</h2><p class="mute">Use this when the customer cannot receive the mail and you know the address is theirs.'
+			. ' A waiting account opens and its trial starts today.</p><form method="post" action="' . e(mkp_url('admin-user', array('id' => $c['id']))) . '">' . mkp_csrf_field()
+			. '<input type="hidden" name="what" value="verify"><div class="row"><button class="btn alt" type="submit">Mark as confirmed</button></div></form></div>')
 		. '<div class="card"><h2>Set a new password</h2><p class="mute">For a customer who lost the password. It applies to the portal and to their Mikhmon login.</p>'
 		. '<form method="post" action="' . e(mkp_url('admin-user', array('id' => $c['id']))) . '">' . mkp_csrf_field()
 		. '<input type="hidden" name="what" value="pass"><label for="np">New password</label><input id="np" type="text" name="pass" minlength="8" autocomplete="off" required>'

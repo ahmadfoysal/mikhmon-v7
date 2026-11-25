@@ -177,8 +177,8 @@ if (!function_exists('mkp_mail_enabled')) {
 		$brand = mkl_site('brand');
 		$m = array(
 			'verify' => array(
-				'en' => array('Confirm your email address', "Hello {name},\n\nwelcome to {brand}. Your Mikhmon address is:\n{url}\n\nPlease confirm your email address by opening this link:\n{link}\n\nThe link is valid for 3 days."),
-				'bn' => array('আপনার ইমেইল ঠিকানা নিশ্চিত করুন', "প্রিয় {name},\n\n{brand}-এ স্বাগতম। আপনার Mikhmon-এর ঠিকানা:\n{url}\n\nনিচের লিংকটি খুলে আপনার ইমেইল ঠিকানা নিশ্চিত করুন:\n{link}\n\nলিংকটি ৩ দিন কার্যকর থাকবে।"),
+				'en' => array('Confirm your email address', "Hello {name},\n\nwelcome to {brand}. Your Mikhmon address is:\n{url}\n\nPlease confirm your email address by opening this link. Your account opens when you do:\n{link}\n\nThe link is valid for 3 days."),
+				'bn' => array('আপনার ইমেইল ঠিকানা নিশ্চিত করুন', "প্রিয় {name},\n\n{brand}-এ স্বাগতম। আপনার Mikhmon-এর ঠিকানা:\n{url}\n\nনিচের লিংকটি খুলে আপনার ইমেইল ঠিকানা নিশ্চিত করুন। নিশ্চিত করলেই আপনার অ্যাকাউন্ট চালু হবে:\n{link}\n\nলিংকটি ৩ দিন কার্যকর থাকবে।"),
 			),
 			'reset' => array(
 				'en' => array('Reset your password', "Hello {name},\n\nopen this link to choose a new password:\n{link}\n\nThe link is valid for 1 hour and works once. If you did not ask for it, ignore this message; your password stays unchanged."),
@@ -276,7 +276,7 @@ if (!function_exists('mkp_mail_enabled')) {
 		$today = date('Y-m-d');
 		foreach (mkp_q('SELECT * FROM users ORDER BY id')->fetchAll() as $u) {
 			$t = mkl_tenant_info(mkl_tenant_dir($u['tenant']));
-			if ($t['status'] != 'active' || $t['expires'] == '' || $t['plan'] == 'unpaid') {
+			if ($t['status'] != 'active' || $t['expires'] == '' || $t['plan'] == 'unpaid' || $t['plan'] == 'unverified') {
 				continue;
 			}
 			$days = (int)round((strtotime($t['expires']) - strtotime($today)) / 86400);

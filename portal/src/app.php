@@ -257,11 +257,14 @@ if (!defined('MKP_ROOT')) {
 		}
 		$hash = password_hash((string)$pass, PASSWORD_DEFAULT);
 		$trial = (int)mkl_site('trial_days');
+		// with verification required the account stays closed until the address
+		// is confirmed; the trial then starts on that day (mkp_mark_verified)
+		$wait = mkp_verify_required();
 		$err = mkl_tenant_create($tenant, $tenant, (string)$pass, array(
 			'max_routers' => max(1, (int)mkl_site('trial_routers')),
 			// without a trial the account exists but stays closed until the first payment
-			'expires' => $trial > 0 ? date('Y-m-d', strtotime("+$trial day")) : date('Y-m-d', strtotime('-1 day')),
-			'plan' => $trial > 0 ? 'trial' : 'unpaid',
+			'expires' => ($trial > 0 && !$wait) ? date('Y-m-d', strtotime("+$trial day")) : date('Y-m-d', strtotime('-1 day')),
+			'plan' => $wait ? 'unverified' : ($trial > 0 ? 'trial' : 'unpaid'),
 		));
 		if ($err != '') {
 			return array(0, $err);
@@ -270,6 +273,62 @@ if (!defined('MKP_ROOT')) {
 		mkp_q('INSERT INTO users (email, name, phone, pass_hash, tenant, lang, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
 			array($email, trim((string)$name), trim((string)$phone), $hash, $tenant, mkp_lang(), mkp_now()));
 		return array((int)mkp_db()->lastInsertId(), '');
+	}
+
+	/** True when a new account must confirm its e-mail address before it opens. */
+	function mkp_verify_required()
+	{
+		return mkp_mail_enabled() && mkl_site('require_verified');
+	}
+
+	/**
+	 * The customer proved the mailbox is theirs. An account that was waiting
+	 * for this opens now and its trial starts today.
+	 */
+	function mkp_mark_verified($user)
+	{
+		mkp_q('UPDATE users SET email_verified = 1 WHERE id = ?', array($user['id']));
+		$t = mkl_tenant_info(mkl_tenant_dir($user['tenant']));
+		if ($t['plan'] == 'unverified') {
+			$trial = (int)mkl_site('trial_days');
+			mkl_tenant_write($user['tenant'], array(
+				'expires' => $trial > 0 ? date('Y-m-d', strtotime("+$trial day")) : date('Y-m-d', strtotime('-1 day')),
+				'plan' => $trial > 0 ? 'trial' : 'unpaid',
+			));
+		}
+	}
+
+	/**
+	 * Remove accounts that never confirmed their address, so their subdomain
+	 * becomes free again. Only empty accounts are touched: still waiting for
+	 * confirmation, no order of any kind, no VPN connection.
+	 * @return array removed subdomain names
+	 */
+	function mkp_purge_unverified($days)
+	{
+		$gone = array();
+		$before = date('Y-m-d H:i:s', time() - max(1, (int)$days) * 86400);
+		foreach (mkp_q('SELECT * FROM users WHERE email_verified = 0 AND is_admin = 0 AND created_at < ?', array($before))->fetchAll() as $u) {
+			$dir = mkl_tenant_dir($u['tenant']);
+			$t = mkl_tenant_info($dir);
+			$busy = mkp_row('SELECT (SELECT COUNT(*) FROM orders WHERE user_id = ?) + (SELECT COUNT(*) FROM vpn_peers WHERE user_id = ?) c', array($u['id'], $u['id']));
+			if ($t['plan'] != 'unverified' || (int)$busy['c'] > 0 || !mkl_valid_tenant($u['tenant'])) {
+				continue;
+			}
+			if (is_dir($dir)) {
+				foreach (array_merge((array)glob($dir . '/*'), (array)glob($dir . '/.[!.]*')) as $f) {
+					if (is_file($f)) {
+						@unlink($f);
+					}
+				}
+				@rmdir($dir);
+			}
+			mkp_q('DELETE FROM tokens WHERE user_id = ?', array($u['id']));
+			mkp_q('DELETE FROM mail_log WHERE user_id = ?', array($u['id']));
+			mkp_q('DELETE FROM users WHERE id = ?', array($u['id']));
+			$gone[] = $u['tenant'];
+		}
+		return $gone;
 	}
 
 	function mkp_login($email, $pass)
@@ -299,6 +358,8 @@ if (!defined('MKP_ROOT')) {
 		$t['days_left'] = $t['expires'] == '' ? 99999 : (int)floor((strtotime($t['expires'] . ' 23:59:59') - time()) / 86400);
 		if ($t['status'] != 'active') {
 			$t['state'] = 'suspended';
+		} elseif ($t['plan'] == 'unverified') {
+			$t['state'] = 'unverified';
 		} elseif ($t['expires'] != '' && $t['expires'] < date('Y-m-d')) {
 			$t['state'] = 'expired';
 		} else {

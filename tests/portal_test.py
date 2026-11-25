@@ -172,23 +172,29 @@ try:
     a.post('?p=register', {'name': 'Alice', 'email': 'alice@example.com', 'phone': '0171', 'tenant': 'alice1', 'pass': 'short'})
     ok('at least 8' in a.html, 'short password refused')
     a.post('?p=register', {'name': 'Alice <b>', 'email': 'Alice@Example.com', 'phone': '0171', 'tenant': 'alice1', 'pass': 'alicepass1'})
-    ok('Welcome, Alice &lt;b&gt;' in a.html and 'Free trial' in a.html, 'registered, trial shown, name escaped')
+    ok('Welcome, Alice &lt;b&gt;' in a.html and 'Waiting for email confirmation' in a.html and 'p=open' not in a.html, 'registered, waiting for confirmation, name escaped')
     t = tenant('alice1')
-    ok(t['max_routers'] == 1 and t['plan'] == 'trial' and t['expires'] > today, 'trial tenant created')
+    ok(t['plan'] == 'unverified' and t['expires'] < today, 'new account is closed until the address is confirmed: %s' % t)
+    ok('Email not confirmed' in Browser(AP, 'alice1.mikhmon.test').go('admin.php?id=login'), 'Mikhmon is closed before confirmation')
+    a.post('?p=vpn-add', {'name': 'Early', 'type': 'wg'}, form='?p=vpn')
+    ok('confirm your email address first' in a.html and not os.path.exists(os.path.join(DATA, 'vpn', 'wg-peers.conf')), 'no router connection before confirmation')
 
     # e-mail verification
     vm = mail_to('alice@example.com', 'Confirm')
     ok(len(vm) == 1 and 'https://alice1.mikhmon.test' in vm[0]['body'] and 'Alice <b>' in vm[0]['body'], 'welcome mail sent: %s' % [x['subject'] for x in MAILS])
-    ok('Please confirm your email address' in a.html, 'dashboard asks for confirmation')
+    ok('opens as soon as you confirm your email address' in a.go('?p=dashboard'), 'dashboard asks for confirmation')
     old_link = link_in(vm[0])
     a.go('?p=verify-resend', {'csrf': a.csrf()})
     vm = mail_to('alice@example.com', 'Confirm')
     ok(len(vm) == 2, 'verification mail sent again')
     anon = Browser(PP, 'mikhmon.test')
     ok('not valid any more' in anon.go(old_link), 'older verification link stops working')
-    ok('email address is confirmed' in anon.go(link_in(vm[1])), 'verification link works without login')
+    ok('email address is confirmed. Your 7 day free trial starts now' in anon.go(link_in(vm[1])), 'verification link works without login')
+    t = tenant('alice1')
+    week = time.strftime('%Y-%m-%d', time.localtime(time.time() + 7 * 86400))
+    ok(t['max_routers'] == 1 and t['plan'] == 'trial' and t['expires'] == week, 'trial starts at confirmation: %s' % t)
     ok('not valid any more' in anon.go(link_in(vm[1])), 'verification link works once')
-    ok('Please confirm your email address' not in a.go('?p=dashboard'), 'confirmation notice gone')
+    ok('confirm your email address' not in a.go('?p=dashboard') and 'Free trial' in a.html and 'p=open' in a.html, 'confirmed: trial shown, Mikhmon can be opened')
     b = Browser(PP, 'mikhmon.test')
     b.post('?p=register', {'name': 'Bob', 'email': 'alice@example.com', 'phone': '', 'tenant': 'bob1', 'pass': 'bobpass12'})
     ok('already exists' in b.html, 'duplicate email refused')
@@ -386,14 +392,45 @@ try:
         f.post('?p=forgot', {'email': 'bob@example.com'})
     ok(1 <= len(mail_to('bob@example.com', 'Reset your password')) <= 3, 'reset mails are rate limited: %d' % len(mail_to('bob@example.com', 'Reset your password')))
 
+    # accounts that never confirm
+    import sqlite3
+    c = Browser(PP, 'mikhmon.test')
+    c.post('?p=register', {'name': 'Carol', 'email': 'carol@example.com', 'phone': '', 'tenant': 'carol1', 'pass': 'carolpass1'})
+    d = Browser(PP, 'mikhmon.test')
+    d.post('?p=register', {'name': 'Dave', 'email': 'dave@example.com', 'phone': '', 'tenant': 'dave1', 'pass': 'davepass12'})
+    ok(tenant('carol1')['plan'] == 'unverified' and tenant('dave1')['plan'] == 'unverified', 'two more waiting accounts')
+    ptool = lambda *args: subprocess.run(['php', os.path.join(APP, 'tools', 'portal.php')] + list(args), env=env, capture_output=True, text=True).stdout
+    ok(ptool('purge-unverified', '7').startswith('0 account'), 'fresh waiting accounts are kept')
+    b.go('?p=admin')
+    did = dict(re.findall(r'<tr><td><a href="https://(\w+)\.mikhmon\.test">.*?admin-user&amp;id=(\d+)', b.html, re.S))['dave1']
+    b.post('?p=admin-user&id=' + did, {'what': 'verify'})
+    ok(tenant('dave1')['plan'] == 'trial' and tenant('dave1')['expires'] > today, 'admin can confirm an address by hand')
+    db = sqlite3.connect(os.path.join(DATA, 'portal.sqlite'))
+    db.execute("UPDATE users SET created_at = '2020-01-01 00:00:00'")
+    db.commit(); db.close()
+    out = ptool('purge-unverified', '7')
+    ok(out.strip() == '1 account(s) removed: carol1', 'only the empty unconfirmed account is removed: ' + out)
+    ok(not os.path.exists(os.path.join(DATA, 'tenants', 'carol1')) and os.path.exists(os.path.join(DATA, 'tenants', 'bob1')) and os.path.exists(os.path.join(DATA, 'tenants', 'dave1')), 'other accounts untouched')
+    c2 = Browser(PP, 'mikhmon.test')
+    c2.post('?p=register', {'name': 'Carol', 'email': 'carol@example.com', 'phone': '', 'tenant': 'carol1', 'pass': 'carolpass1'})
+    ok('Welcome, Carol' in c2.html, 'the freed address can be registered again')
+    c2.post('?p=order', {'routers': '1', 'years': '1', 'method': 'paystation'}, follow=False, form='?p=billing')
+    invc = c2.loc.rsplit('/', 1)[1]
+    PS['tx'][invc] = {'invoice_number': invc, 'trx_status': 'Success', 'trx_id': 'PS9', 'payment_amount': 1000}
+    c2.go('?p=pay-return&invoice=' + invc)
+    ok(tenant('carol1')['plan'] == 'yearly' and 'Email not confirmed' not in Browser(AP, 'carol1.mikhmon.test').go('admin.php?id=login'), 'a paid order opens an unconfirmed account')
+
     # expiry reminders
     tool = lambda *args: subprocess.run(['php', os.path.join(APP, 'tools', 'portal.php')] + list(args), env=env, capture_output=True, text=True).stdout
     def set_exp(days):
         d = time.strftime('%Y-%m-%d', time.localtime(time.time() + days * 86400))
         subprocess.run(['php', os.path.join(APP, 'tools', 'tenant.php'), 'set', 'alice1', '--expires=' + d], env=env, capture_output=True)
         return d
+    # Dave's 7 day trial (started by the admin above) gets its first reminder now
+    first = tool('reminders')
+    ok(first.startswith('1 reminder') and MAILS[-1]['to'] == 'dave@example.com', 'trial ending reminder: ' + first)
     n0 = len(MAILS)
-    ok(tool('reminders').startswith('0 reminder'), 'no reminder while the subscription runs long')
+    ok(tool('reminders').startswith('0 reminder'), 'no reminder while the subscription runs long (and none for waiting accounts)')
     d7 = set_exp(6)
     ok(tool('reminders').startswith('1 reminder') and d7 in MAILS[-1]['body'] and MAILS[-1]['to'] == 'alice@example.com', 'reminder a week before the end')
     ok(tool('reminders').startswith('0 reminder'), 'the same reminder is not sent twice')

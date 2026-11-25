@@ -8,6 +8,8 @@
  *                                            tunnels of expired accounts are switched off)
  *   php tools/portal.php reminders           send the expiry reminder mails (run daily from cron)
  *   php tools/portal.php mail-test <email>   send a test mail to check the SMTP settings
+ *   php tools/portal.php purge-unverified [days]   remove empty accounts that never confirmed their
+ *                                            e-mail address (default: older than 7 days)
  *   php tools/portal.php stats
  */
 if (PHP_SAPI !== 'cli') {
@@ -47,10 +49,13 @@ if ($cmd == 'admin' || $cmd == 'noadmin') {
 		fwrite(STDERR, "Sending failed. See " . mkp_data_root() . "/mail-errors.log\n");
 		exit(1);
 	}
+} elseif ($cmd == 'purge-unverified') {
+	$gone = mkp_purge_unverified($arg != '' ? (int)$arg : 7);
+	echo count($gone) . " account(s) removed" . ($gone ? ': ' . implode(', ', $gone) : '') . "\n";
 } elseif ($cmd == 'stats') {
 	$r = mkp_row('SELECT (SELECT COUNT(*) FROM users) u, (SELECT COUNT(*) FROM orders WHERE status = "pending") p, (SELECT COUNT(*) FROM vpn_peers) v');
 	echo "customers: {$r['u']}  pending orders: {$r['p']}  vpn connections: {$r['v']}\n";
 } else {
-	echo preg_replace('/^ \* ?/m', '', substr(file_get_contents(__FILE__), 9, 680)), "\n";
+	echo preg_replace('/^ \* ?/m', '', substr(file_get_contents(__FILE__), 9, 880)), "\n";
 	exit(1);
 }
