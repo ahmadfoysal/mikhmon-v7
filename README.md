@@ -50,7 +50,7 @@ The portal is a second website for the bare domain. It uses the same code folder
 How it works:
 
 - Registration creates the customer's data folder at once (free trial, or closed until the first payment when `trial_days` is 0). The Mikhmon login is the subdomain name with the portal password; **Open Mikhmon** logs in with a one-time link.
-- An order is *N routers for Y years* = `N x Y x price_per_router`. When it is paid the router limit becomes N and Y years are added to the subscription.
+- Customers choose one of the `packages` in `include/site.php` (default: Starter 1 router ৳1,200, Business 3 routers ৳3,000, Pro 10 routers ৳7,500 per year) for 1-3 years; `year_discount` gives 10% off for 2 years and 15% for 3. When an order is paid the router limit becomes the package's routers and the years are added after the current paid period.
 - Online payment (PayStation): the order is only marked paid after the server asked PayStation for the transaction and status, invoice and amount match. The browser return and the IPN are treated as hints.
 - Manual payment: the customer enters method, sender number and transaction ID; you approve or reject it.
 - The database is one SQLite file next to the tenant folder (`portal.sqlite`). Back it up together with the tenant folder and the key file.

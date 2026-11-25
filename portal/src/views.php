@@ -36,16 +36,8 @@ function v_layout($title, $body, $active = '')
 
 function v_home()
 {
-	$trial = (int)mkl_site('trial_days');
-	$b = '<div class="hero"><h1>' . e(t('hero_title')) . '</h1><p>' . e(t('hero_text')) . '</p>'
-		. '<p class="price">' . e(t('price_line', array(mkp_money(mkl_site('price_per_router'))))) . '</p>'
-		. ($trial > 0 ? '<p>' . e(t('trial_line', array($trial))) . '</p>' : '')
-		. '<div class="row"><a class="btn" href="' . e(mkp_url('register')) . '">' . e(t('nav_register')) . '</a>'
-		. '<a class="btn alt" href="' . e(mkp_url('login')) . '">' . e(t('nav_login')) . '</a></div></div><div class="grid" style="margin-top:24px">';
-	foreach (array(1, 2, 3) as $i) {
-		$b .= '<div class="card"><h3>' . e(t('feat_' . $i)) . '</h3><p class="mute">' . e(t('feat_' . $i . '_text', array(mkl_site('base_domain')))) . '</p></div>';
-	}
-	return v_layout(mkl_site('brand'), $b . '</div>', '');
+	require_once(__DIR__ . '/views_landing.php');
+	return v_landing();
 }
 
 function v_register($old = array(), $error = '')
@@ -55,6 +47,7 @@ function v_register($old = array(), $error = '')
 	};
 	$b = '<div class="card narrow"><h2>' . e(t('nav_register')) . '</h2>'
 		. ($error != '' ? '<div class="msg bad">' . e($error) . '</div>' : '')
+		. (isset($_SESSION['want_plan']) && ($wp = mkp_package($_SESSION['want_plan'])) ? '<p><span class="tag ok">' . e(t('chosen_package', array(mkp_package_name($wp)))) . '</span></p>' : '')
 		. '<form method="post" action="' . e(mkp_url('register')) . '" autocomplete="on">' . mkp_csrf_field()
 		. '<label for="name">' . e(t('name')) . '</label><input id="name" type="text" name="name" value="' . $g('name') . '" required>'
 		. '<label for="email">' . e(t('email')) . '</label><input id="email" type="email" name="email" value="' . $g('email') . '" required>'
@@ -130,7 +123,7 @@ function v_dashboard($u)
 		. '<div class="card"><h2>' . e(t('your_mikhmon')) . '</h2><p><a href="' . e($url) . '">' . e(preg_replace('~^https://~', '', $url)) . '</a></p>'
 		. ($open ? '<div class="row"><a class="btn" href="' . e(mkp_url('open')) . '">' . e(t('open_mikhmon')) . '</a></div>' : '')
 		. '<p class="mute" style="margin-top:12px">' . e(t('mikhmon_login', array($u['tenant']))) . '</p></div>'
-		. '<div class="card"><h2>' . e(t('subscription')) . '</h2><p>' . v_state_tag($s) . '</p><p>' . v_sub_line($s) . '</p>'
+		. '<div class="card"><h2>' . e(t('subscription')) . '</h2><p>' . v_state_tag($s) . ($s['package'] ? ' <b>' . e(mkp_package_name($s['package'])) . '</b>' : '') . '</p><p>' . v_sub_line($s) . '</p>'
 		. '<p>' . e(t('routers_used', array($s['routers_used'], $s['max_routers'] > 0 ? $s['max_routers'] : '∞'))) . '</p>'
 		. '<div class="row"><a class="btn' . ($open && $s['state'] == 'active' && $s['days_left'] > 30 ? ' alt' : '') . '" href="' . e(mkp_url('billing')) . '">' . e(t('renew')) . '</a></div></div></div>'
 		. '<div class="card"><h2>' . e(t('next_steps')) . '</h2><ol><li>' . e(t('step_1')) . '</li><li>' . e(t('step_2')) . '</li><li>' . e(t('step_3')) . '</li></ol></div>';
@@ -146,17 +139,40 @@ function v_order_status($st)
 function v_billing($u, $error = '')
 {
 	$s = mkp_subscription($u);
-	$unit = (int)mkl_site('price_per_router');
-	$cur = e(mkl_site('currency'));
-	$def = max(1, $s['max_routers']);
+	require_once(__DIR__ . '/views_landing.php');
+	$cur = $s['package'] ? $s['package']['key'] : '';
+	$want = isset($_SESSION['want_plan']) && mkp_package($_SESSION['want_plan']) ? $_SESSION['want_plan'] : '';
+	$sel = $want != '' ? $want : ($cur != '' ? $cur : '');
+	if ($sel == '') {
+		foreach (mkp_packages() as $p) {
+			if ($sel == '' || $p['popular']) {
+				$sel = $p['key'];
+			}
+		}
+	}
 	$b = '<h1>' . e(t('nav_billing')) . '</h1>' . ($error != '' ? '<div class="msg bad">' . e($error) . '</div>' : '')
-		. '<div class="card"><p>' . v_state_tag($s) . ' ' . v_sub_line($s) . '</p></div>'
-		. '<div class="card"><h2>' . e(t('order_title')) . '</h2><form method="post" action="' . e(mkp_url('order')) . '">' . mkp_csrf_field()
-		. '<div class="grid"><div><label for="routers">' . e(t('routers')) . '</label><input id="routers" type="number" name="routers" min="1" max="'
-		. (int)mkl_site('max_routers_order') . '" value="' . $def . '" required></div>'
-		. '<div><label for="years">' . e(t('years')) . '</label><select id="years" name="years"><option>1</option><option>2</option><option>3</option></select></div>'
-		. '<div><label>' . e(t('total')) . '</label><div class="total"><span id="total">' . number_format($def * $unit) . '</span> ' . $cur . '</div></div></div>'
-		. '<p class="mute" style="margin-top:12px">' . e(t('order_note')) . '</p>';
+		. '<div class="card"><p>' . v_state_tag($s) . ' ' . ($s['package'] ? '<b>' . e(mkp_package_name($s['package'])) . '</b> ' : '') . v_sub_line($s) . '</p></div>'
+		. '<div class="card"><h2>' . e(t('choose_package')) . '</h2><form method="post" action="' . e(mkp_url('order')) . '" id="orderform">' . mkp_csrf_field()
+		. '<div class="pk-grid">';
+	foreach (mkp_packages() as $p) {
+		$prices = array();
+		foreach (array(1, 2, 3) as $y) {
+			$prices[$y] = mkp_price($p, $y);
+		}
+		$b .= '<label class="pk' . ($p['popular'] ? ' pop' : '') . '"><input type="radio" name="package" value="' . e($p['key']) . '"' . ($p['key'] == $sel ? ' checked' : '')
+			. ' data-prices=\'' . e(json_encode($prices)) . '\'><span class="pk-box"><span class="pk-top"><b>' . e(mkp_package_name($p)) . '</b>'
+			. ($p['key'] == $cur ? '<span class="tag ok">' . e(t('pkg_current')) . '</span>' : ($p['popular'] ? '<span class="tag warn">' . e(t('pkg_popular')) . '</span>' : '')) . '</span>'
+			. '<span class="pk-r">' . e(t($p['routers'] == 1 ? 'pkg_routers' : 'pkg_routers_n', array($p['routers']))) . '</span>'
+			. '<span class="pk-p">' . e(mkp_taka($p['price'])) . '<small>' . e(t('per_year')) . '</small></span></span></label>';
+	}
+	$yopts = '';
+	foreach (array(1, 2, 3) as $y) {
+		$d = mkp_discount($y);
+		$yopts .= '<option value="' . $y . '">' . e(t('year_' . $y)) . ($d > 0 ? ' (' . e(t('save_pct', array($d))) . ')' : '') . '</option>';
+	}
+	$b .= '</div><div class="grid" style="margin-top:8px"><div><label for="years">' . e(t('years')) . '</label><select id="years" name="years">' . $yopts . '</select></div>'
+		. '<div><label>' . e(t('total')) . '</label><div class="total" id="total"></div></div></div>'
+		. '<p class="mute" style="margin-top:12px">' . e(t('upgrade_note')) . '</p>';
 	if (mkp_ps_enabled()) {
 		$b .= '<div class="row"><button class="btn" type="submit" name="method" value="paystation">' . e(t('pay_online')) . '</button></div>';
 	}
@@ -167,8 +183,10 @@ function v_billing($u, $error = '')
 			. '<div><label for="mt">' . e(t('manual_trx')) . '</label><input id="mt" type="text" name="manual_trx"></div></div>'
 			. '<div class="row"><button class="btn alt" type="submit" name="method" value="manual">' . e(t('manual_submit')) . '</button></div>';
 	}
-	$b .= '</form></div><script>(function(){var r=document.getElementById("routers"),y=document.getElementById("years"),o=document.getElementById("total");'
-		. 'function c(){var n=Math.max(1,parseInt(r.value||"1",10))*parseInt(y.value,10)*' . $unit . ';o.textContent=n.toLocaleString("en-US")}r.oninput=c;y.onchange=c})();</script>';
+	$sym = mkl_site('currency') == 'BDT' ? '৳' : mkl_site('currency') . ' ';
+	$b .= '</form></div><script>(function(){var f=document.getElementById("orderform"),y=document.getElementById("years"),o=document.getElementById("total");'
+		. 'function c(){var r=f.querySelector("input[name=package]:checked");if(!r){o.textContent="";return}var p=JSON.parse(r.getAttribute("data-prices"))[y.value];'
+		. 'o.textContent=' . json_encode($sym) . '+p.toLocaleString("en-US")}f.addEventListener("change",c);c()})();</script>';
 
 	$orders = mkp_q('SELECT * FROM orders WHERE user_id = ? ORDER BY id DESC LIMIT 50', array($u['id']))->fetchAll();
 	$b .= '<div class="card"><h2>' . e(t('orders')) . '</h2>';
@@ -187,7 +205,8 @@ function v_billing($u, $error = '')
 				$act .= '<form class="inline" method="post" action="' . e(mkp_url('order-cancel')) . '">' . mkp_csrf_field() . '<input type="hidden" name="id" value="' . (int)$o['id']
 					. '"><button class="btn sm alt" type="submit">' . e(t('cancel')) . '</button></form>';
 			}
-			$b .= '<tr><td>' . e($o['invoice']) . '</td><td>' . e(substr($o['created_at'], 0, 10)) . '</td><td>' . (int)$o['routers'] . '</td><td>' . (int)$o['years']
+			$opk = mkp_package($o['package']);
+			$b .= '<tr><td>' . e($o['invoice']) . '</td><td>' . e(substr($o['created_at'], 0, 10)) . '</td><td>' . ($opk ? e(mkp_package_name($opk)) . ' · ' : '') . (int)$o['routers'] . '</td><td>' . (int)$o['years']
 				. '</td><td>' . e(mkp_money($o['amount'])) . '</td><td>' . v_order_status($o['status']) . '</td><td>' . $act . '</td></tr>';
 		}
 		$b .= '</table></div>';
@@ -268,7 +287,7 @@ function v_admin()
 		$b .= '<div class="scroll"><table><tr><th>Invoice</th><th>Customer</th><th>Order</th><th>Amount</th><th>Method</th><th>Payment details</th><th></th></tr>';
 		foreach ($pending as $o) {
 			$b .= '<tr><td>' . e($o['invoice']) . '<br><span class="mute">' . e($o['created_at']) . '</span></td><td>' . e($o['uname']) . '<br><span class="mute">' . e($o['tenant'])
-				. '</span></td><td>' . (int)$o['routers'] . ' router, ' . (int)$o['years'] . ' yr</td><td>' . e(mkp_money($o['amount'])) . '</td><td>' . e($o['method']) . '</td><td>'
+				. '</span></td><td>' . (($apk = mkp_package($o['package'])) ? e(mkp_package_name($apk)) . ': ' : '') . (int)$o['routers'] . ' router, ' . (int)$o['years'] . ' yr</td><td>' . e(mkp_money($o['amount'])) . '</td><td>' . e($o['method']) . '</td><td>'
 				. e($o['note']) . ($o['trx_id'] != '' ? '<br>TrxID: <b>' . e($o['trx_id']) . '</b>' : '') . '</td><td>'
 				. '<form class="inline" method="post" action="' . e(mkp_url('admin-order')) . '">' . mkp_csrf_field() . '<input type="hidden" name="id" value="' . (int)$o['id'] . '">'
 				. '<button class="btn sm" name="do" value="approve" type="submit" onclick="return confirm(\'Mark as paid and extend the subscription?\')">Approve</button> '

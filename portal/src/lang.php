@@ -15,7 +15,8 @@ if (!function_exists('t')) {
 	{
 		static $txt = null;
 		if ($txt === null) {
-			$txt = mkp_texts();
+			require_once(__DIR__ . '/lang_landing.php');
+			$txt = array_merge(mkp_texts(), mkp_texts_landing());
 		}
 		$lang = mkp_lang();
 		$s = isset($txt[$key][$lang]) ? $txt[$key][$lang] : (isset($txt[$key]['en']) ? $txt[$key]['en'] : $key);

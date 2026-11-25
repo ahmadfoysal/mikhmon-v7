@@ -21,7 +21,7 @@ open(os.path.join(DATA, 'vpn', 'l2tp.psk'), 'w').write('TestPsk123\n')
 PP, AP, MP, SP = 18095, 18096, 18097, 18098
 open(os.path.join(APP, 'include', 'site.php'), 'w').write("""<?php return array(
  'tenant_root' => '%s/tenants', 'base_domain' => 'mikhmon.test', 'portal_url' => 'http://mikhmon.test',
- 'price_per_router' => 1000, 'trial_days' => 7, 'manual_payment' => 'bKash 017xxxxxxxx',
+ 'trial_days' => 7, 'manual_payment' => 'bKash 017xxxxxxxx',
  'paystation_merchant' => 'm1', 'paystation_password' => 'p1', 'paystation_url' => 'http://127.0.0.1:%d',
  'vpn_host' => 'vpn.mikhmon.test',
  'smtp_host' => '127.0.0.1', 'smtp_port' => %d, 'smtp_secure' => '', 'smtp_user' => 'mailer', 'smtp_pass' => 'mailpw',
@@ -161,7 +161,10 @@ def php(code, tenant_name=''):
 try:
     today = time.strftime('%Y-%m-%d')
     a = Browser(PP, 'mikhmon.test')
-    ok('Create account' in a.go('./'), 'landing page')
+    ok('Create account' in a.go('./') and 'Most popular' in a.html and '৳1,200' in a.html and '৳3,000' in a.html and '৳7,500' in a.html, 'landing page with packages')
+    ok('save 10%' in a.html and 'save 15%' in a.html and '৳2,700' in a.html and '৳19,125' in a.html, 'multi-year prices on the landing page')
+    a.go('?p=register&plan=business')
+    ok('Selected package: Business' in a.html, 'package chosen on the landing page is remembered')
     ok(Browser(PP, 'alice1.mikhmon.test').go('./') and 'Not found' in Browser(PP, 'alice1.mikhmon.test').go('./'), 'portal refuses customer hosts')
 
     # registration
@@ -231,14 +234,19 @@ try:
     ok('Welcome, Alice' in a.html, 'login')
     ok(urllib.request.build_opener(urllib.request.ProxyHandler({})).open(urllib.request.Request('http://127.0.0.1:%d/?p=dashboard' % PP, headers={'Host': 'mikhmon.test'})).geturl().endswith('p=login'), 'dashboard needs login')
     a.go('?p=dashboard')
-    a.go('?p=order', {'routers': '5', 'years': '1', 'method': 'manual', 'manual_trx': 'X', 'csrf': 'bad'})
+    a.go('?p=order', {'package': 'pro', 'years': '1', 'method': 'manual', 'manual_trx': 'X', 'csrf': 'bad'})
     ok(a.code == 400, 'post without csrf token refused')
 
     # manual payment -> admin approval
-    a.post('?p=order', {'routers': '2', 'years': '1', 'method': 'manual', 'manual_method': 'bKash', 'manual_sender': '0171', 'manual_trx': ''}, form='?p=billing')
+    ok('value="business" checked' in a.go('?p=billing') or "value=\"business\" checked" in a.html, 'billing preselects the package chosen on the landing page')
+    a.post('?p=order', {'package': 'gold', 'years': '1', 'method': 'manual', 'manual_trx': 'X1'}, form='?p=billing')
+    ok('This order is not valid' in a.html, 'unknown package refused')
+    a.post('?p=order', {'package': 'pro', 'years': '4', 'method': 'manual', 'manual_trx': 'X1'}, form='?p=billing')
+    ok('This order is not valid' in a.html, 'more than 3 years refused')
+    a.post('?p=order', {'package': 'starter', 'years': '1', 'method': 'manual', 'manual_method': 'bKash', 'manual_sender': '0171', 'manual_trx': ''}, form='?p=billing')
     ok('transaction ID' in a.html, 'manual order needs a transaction id')
-    a.post('?p=order', {'routers': '2', 'years': '1', 'method': 'manual', 'manual_method': 'bKash', 'manual_sender': '0171', 'manual_trx': 'TRX123'}, form='?p=billing')
-    ok('will be checked' in a.html and 'Waiting' in a.html and '2,000 BDT' in a.html, 'manual order pending')
+    a.post('?p=order', {'package': 'starter', 'years': '1', 'method': 'manual', 'manual_method': 'bKash', 'manual_sender': '0171', 'manual_trx': 'TRX123'}, form='?p=billing')
+    ok('will be checked' in a.html and 'Waiting' in a.html and '1,200 BDT' in a.html, 'manual order pending')
     om = mail_to('owner@mikhmon.test', 'Manual payment')
     ok(len(om) == 1 and 'TRX123' in om[0]['body'] and 'alice1' in om[0]['body'], 'owner is told about the manual payment')
     ok(tenant('alice1')['plan'] == 'trial', 'pending order changes nothing')
@@ -250,37 +258,37 @@ try:
     b.go('?p=admin-order', {'id': oid, 'do': 'approve', 'csrf': b.csrf()})
     t = tenant('alice1')
     year1 = time.strftime('%Y-%m-%d', time.localtime(time.time() + 364 * 86400))
-    ok(t['max_routers'] == 2 and t['plan'] == 'yearly' and t['expires'] >= year1, 'approval extends the subscription: %s' % t)
+    ok(t['max_routers'] == 1 and t['plan'] == 'starter' and t['expires'] >= year1, 'approval extends the subscription: %s' % t)
     exp1 = t['expires']
     pm = mail_to('alice@example.com', 'Payment received')
-    ok(len(pm) == 1 and '2,000 BDT' in pm[0]['body'] and exp1 in pm[0]['body'], 'receipt mail after approval')
+    ok(len(pm) == 1 and '1,200 BDT' in pm[0]['body'] and exp1 in pm[0]['body'], 'receipt mail after approval')
     b.go('?p=admin')
     b.go('?p=admin-order', {'id': oid, 'do': 'approve', 'csrf': b.csrf()})
     ok(tenant('alice1')['expires'] == exp1, 'approving twice does not extend twice')
     ok(len(mail_to('alice@example.com', 'Payment received')) == 1, 'no second receipt')
-    b.post('?p=order', {'routers': '1', 'years': '1', 'method': 'manual', 'manual_trx': 'BADTRX'}, form='?p=billing')
+    b.post('?p=order', {'package': 'starter', 'years': '1', 'method': 'manual', 'manual_trx': 'BADTRX'}, form='?p=billing')
     b.go('?p=admin')
     rid = re.search(r'BADTRX.*?name="id" value="(\d+)"', b.html, re.S).group(1)
     b.go('?p=admin-order', {'id': rid, 'do': 'reject', 'csrf': b.csrf()})
     ok(len(mail_to('bob@example.com', 'could not be confirmed')) == 1, 'rejection mail')
 
     # online payment
-    a.post('?p=order', {'routers': '3', 'years': '2', 'method': 'paystation'}, follow=False, form='?p=billing')
+    a.post('?p=order', {'package': 'business', 'years': '2', 'method': 'paystation'}, follow=False, form='?p=billing')
     ok(a.loc.startswith('https://pay.example/ML'), 'redirect to the payment page: ' + a.loc)
     inv = a.loc.rsplit('/', 1)[1]
     f = PS['init'][-1]
-    ok(f['payment_amount'] == '6000' and f['invoice_number'] == inv and 'pay-return' in f['callback_url'] and f['reference'] == 'alice1', 'initiate fields: %s' % f)
+    ok(f['payment_amount'] == '5400' and f['invoice_number'] == inv and 'pay-return' in f['callback_url'] and f['reference'] == 'alice1', 'initiate fields: %s' % f)
     a.go('?p=pay-return&invoice=' + inv + '&status=Successful&trx_id=FAKE')
-    ok('not confirmed yet' in a.html and tenant('alice1')['max_routers'] == 2, 'forged return is not trusted')
+    ok('not confirmed yet' in a.html and tenant('alice1')['max_routers'] == 1, 'forged return is not trusted')
     PS['tx'][inv] = {'invoice_number': inv, 'trx_status': 'Success', 'trx_id': 'PS1', 'payment_amount': 10}
     a.go('?p=pay-return&invoice=' + inv)
-    ok(tenant('alice1')['max_routers'] == 2, 'under-payment is not accepted')
-    PS['tx'][inv] = {'invoice_number': 'OTHER', 'trx_status': 'Success', 'trx_id': 'PS1', 'payment_amount': 6000}
+    ok(tenant('alice1')['max_routers'] == 1, 'under-payment is not accepted')
+    PS['tx'][inv] = {'invoice_number': 'OTHER', 'trx_status': 'Success', 'trx_id': 'PS1', 'payment_amount': 5400}
     a.go('?p=pay-return&invoice=' + inv)
-    ok(tenant('alice1')['max_routers'] == 2, 'payment for another invoice is not accepted')
-    a.post('?p=order', {'routers': '3', 'years': '2', 'method': 'paystation'}, follow=False, form='?p=billing')
+    ok(tenant('alice1')['max_routers'] == 1, 'payment for another invoice is not accepted')
+    a.post('?p=order', {'package': 'business', 'years': '2', 'method': 'paystation'}, follow=False, form='?p=billing')
     inv = a.loc.rsplit('/', 1)[1]
-    PS['tx'][inv] = {'invoice_number': inv, 'trx_status': 'Success', 'trx_id': 'PS2', 'payment_amount': 6000}
+    PS['tx'][inv] = {'invoice_number': inv, 'trx_status': 'Success', 'trx_id': 'PS2', 'payment_amount': 5400}
     a.go('?p=pay-return&invoice=' + inv)
     t = tenant('alice1')
     ok('Payment received' in a.html and t['max_routers'] == 3 and t['expires'][:4] == str(int(exp1[:4]) + 2), 'online payment applied on top of the paid period: %s' % t)
@@ -289,11 +297,11 @@ try:
     a.go('?p=pay-return&invoice=' + inv)
     ok(tenant('alice1')['expires'] == exp2, 'repeated notification does not extend twice')
     # IPN alone settles an order the browser never returned from
-    b.post('?p=order', {'routers': '1', 'years': '1', 'method': 'paystation'}, follow=False, form='?p=billing')
+    b.post('?p=order', {'package': 'starter', 'years': '1', 'method': 'paystation'}, follow=False, form='?p=billing')
     invb = b.loc.rsplit('/', 1)[1]
-    PS['tx'][invb] = {'invoice_number': invb, 'trx_status': 'Success', 'trx_id': 'PS3', 'payment_amount': '1000.00'}
+    PS['tx'][invb] = {'invoice_number': invb, 'trx_status': 'Success', 'trx_id': 'PS3', 'payment_amount': '1200.00'}
     urllib.request.build_opener(urllib.request.ProxyHandler({})).open(urllib.request.Request('http://127.0.0.1:%d/?p=pay-ipn' % PP, data=('invoice_number=' + invb).encode(), headers={'Host': 'mikhmon.test'})).read()
-    ok(tenant('bob1')['plan'] == 'yearly', 'server notification settles the order')
+    ok(tenant('bob1')['plan'] == 'starter', 'server notification settles the order')
 
     # VPN connections
     a.go('?p=vpn')
@@ -327,7 +335,7 @@ try:
     b.go('?p=vpn')
     b.go('?p=vpn-del', {'id': pid, 'csrf': b.csrf()})
     ok('10.99.1.1/32' in open(os.path.join(DATA, 'vpn', 'wg-peers.conf')).read(), 'another customer cannot delete the connection')
-    a.post('?p=order', {'routers': '1', 'years': '1', 'method': 'manual', 'manual_trx': 'T2'}, form='?p=billing')
+    a.post('?p=order', {'package': 'starter', 'years': '1', 'method': 'manual', 'manual_trx': 'T2'}, form='?p=billing')
     ok('connected routers' in a.html, 'cannot order fewer routers than connected')
     a.go('?p=vpn')
     a.go('?p=vpn-del', {'id': pid, 'csrf': a.csrf()})
@@ -414,11 +422,11 @@ try:
     c2 = Browser(PP, 'mikhmon.test')
     c2.post('?p=register', {'name': 'Carol', 'email': 'carol@example.com', 'phone': '', 'tenant': 'carol1', 'pass': 'carolpass1'})
     ok('Welcome, Carol' in c2.html, 'the freed address can be registered again')
-    c2.post('?p=order', {'routers': '1', 'years': '1', 'method': 'paystation'}, follow=False, form='?p=billing')
+    c2.post('?p=order', {'package': 'starter', 'years': '1', 'method': 'paystation'}, follow=False, form='?p=billing')
     invc = c2.loc.rsplit('/', 1)[1]
-    PS['tx'][invc] = {'invoice_number': invc, 'trx_status': 'Success', 'trx_id': 'PS9', 'payment_amount': 1000}
+    PS['tx'][invc] = {'invoice_number': invc, 'trx_status': 'Success', 'trx_id': 'PS9', 'payment_amount': 1200}
     c2.go('?p=pay-return&invoice=' + invc)
-    ok(tenant('carol1')['plan'] == 'yearly' and 'Email not confirmed' not in Browser(AP, 'carol1.mikhmon.test').go('admin.php?id=login'), 'a paid order opens an unconfirmed account')
+    ok(tenant('carol1')['plan'] == 'starter' and 'Email not confirmed' not in Browser(AP, 'carol1.mikhmon.test').go('admin.php?id=login'), 'a paid order opens an unconfirmed account')
 
     # expiry reminders
     tool = lambda *args: subprocess.run(['php', os.path.join(APP, 'tools', 'portal.php')] + list(args), env=env, capture_output=True, text=True).stdout

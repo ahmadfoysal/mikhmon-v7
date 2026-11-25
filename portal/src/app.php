@@ -99,6 +99,13 @@ if (!defined('MKP_ROOT')) {
 		if (!isset($cols['lang'])) {
 			$db->exec('ALTER TABLE users ADD COLUMN lang TEXT NOT NULL DEFAULT "en"');
 		}
+		$cols = array();
+		foreach ($db->query('PRAGMA table_info(orders)') as $c) {
+			$cols[$c['name']] = true;
+		}
+		if (!isset($cols['package'])) {
+			$db->exec('ALTER TABLE orders ADD COLUMN package TEXT NOT NULL DEFAULT ""');
+		}
 		return $db;
 	}
 
@@ -365,6 +372,11 @@ if (!defined('MKP_ROOT')) {
 		} else {
 			$t['state'] = $t['plan'] == 'trial' ? 'trial' : 'active';
 		}
+		$pkg = mkp_package((string)$t['plan']);
+		if (!$pkg && !in_array($t['plan'], array('trial', 'unpaid', 'unverified'), true)) {
+			$pkg = mkp_package_for($t['max_routers']);
+		}
+		$t['package'] = $pkg;
 		return $t;
 	}
 
@@ -372,9 +384,55 @@ if (!defined('MKP_ROOT')) {
 	/*  Orders                                                             */
 	/* ------------------------------------------------------------------ */
 
-	function mkp_price($routers, $years)
+	/** Packages from include/site.php, each with key, routers, price (one year) and popular. */
+	function mkp_packages()
 	{
-		return max(1, (int)$routers) * max(1, (int)$years) * (int)mkl_site('price_per_router');
+		$out = array();
+		foreach ((array)mkl_site('packages') as $key => $p) {
+			if (!is_array($p) || !preg_match('/^[a-z0-9_-]{1,20}$/', (string)$key) || (int)$p['routers'] < 1 || (int)$p['price'] < 1) {
+				continue;
+			}
+			$out[$key] = array('key' => $key, 'routers' => (int)$p['routers'], 'price' => (int)$p['price'],
+				'popular' => !empty($p['popular']), 'name' => isset($p['name']) ? (string)$p['name'] : '');
+		}
+		return $out;
+	}
+
+	function mkp_package($key)
+	{
+		$all = mkp_packages();
+		return isset($all[$key]) ? $all[$key] : null;
+	}
+
+	/** Display name of a package (own name from the config, else the translated one). */
+	function mkp_package_name($p)
+	{
+		return $p['name'] != '' ? $p['name'] : t('pkg_' . $p['key']);
+	}
+
+	/** Discount in percent for paying several years at once. */
+	function mkp_discount($years)
+	{
+		$d = (array)mkl_site('year_discount');
+		return isset($d[(int)$years]) ? max(0, min(90, (int)$d[(int)$years])) : 0;
+	}
+
+	/** Price of a package for some years, after the multi-year discount. */
+	function mkp_price($pkg, $years)
+	{
+		$years = max(1, (int)$years);
+		return (int)round($pkg['price'] * $years * (100 - mkp_discount($years)) / 100);
+	}
+
+	/** The package that holds a router limit (smallest that fits), or null. */
+	function mkp_package_for($routers)
+	{
+		foreach (mkp_packages() as $p) {
+			if ($p['routers'] == (int)$routers) {
+				return $p;
+			}
+		}
+		return null;
 	}
 
 	function mkp_money($amount)
@@ -383,13 +441,14 @@ if (!defined('MKP_ROOT')) {
 	}
 
 	/** @return array array(order id, '') or array(0, error text) */
-	function mkp_order_create($user, $routers, $years, $method, $note = '', $trx = '')
+	function mkp_order_create($user, $package, $years, $method, $note = '', $trx = '')
 	{
-		$routers = (int)$routers;
+		$pkg = mkp_package((string)$package);
 		$years = (int)$years;
-		if ($routers < 1 || $routers > (int)mkl_site('max_routers_order') || $years < 1 || $years > 5) {
+		if (!$pkg || $years < 1 || $years > 3) {
 			return array(0, t('err_order'));
 		}
+		$routers = $pkg['routers'];
 		if (!in_array($method, array('paystation', 'manual', 'admin'), true)) {
 			return array(0, t('err_order'));
 		}
@@ -399,8 +458,8 @@ if (!defined('MKP_ROOT')) {
 			return array(0, t('err_order_peers', array($peers)));
 		}
 		$invoice = 'ML' . date('ymd') . strtoupper(bin2hex(random_bytes(4)));
-		mkp_q('INSERT INTO orders (user_id, invoice, routers, years, amount, method, note, trx_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-			array($user['id'], $invoice, $routers, $years, mkp_price($routers, $years), $method, (string)$note, (string)$trx, mkp_now()));
+		mkp_q('INSERT INTO orders (user_id, invoice, package, routers, years, amount, method, note, trx_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+			array($user['id'], $invoice, $pkg['key'], $routers, $years, mkp_price($pkg, $years), $method, (string)$note, (string)$trx, mkp_now()));
 		return array((int)mkp_db()->lastInsertId(), '');
 	}
 
@@ -423,7 +482,7 @@ if (!defined('MKP_ROOT')) {
 		mkl_tenant_write($o['tenant'], array(
 			'expires' => date('Y-m-d', strtotime($from . ' +' . (int)$o['years'] . ' year')),
 			'max_routers' => (int)$o['routers'],
-			'plan' => 'yearly',
+			'plan' => $o['package'] != '' ? $o['package'] : 'yearly',
 			'status' => 'active',
 		));
 		mkp_vpn_write_state(); // tunnels of a renewed account come back

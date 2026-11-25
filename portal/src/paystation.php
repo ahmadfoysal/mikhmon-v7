@@ -69,7 +69,7 @@ if (!function_exists('mkp_ps_enabled')) {
 			'cust_email' => $user['email'],
 			'cust_address' => 'Bangladesh',
 			'callback_url' => mkp_abs('pay-return', array('invoice' => $order['invoice'])),
-			'checkout_items' => 'MikhmonLive ' . (int)$order['routers'] . ' router x ' . (int)$order['years'] . ' year',
+			'checkout_items' => mkl_site('brand') . ' ' . ($order['package'] != '' ? ucfirst($order['package']) . ' ' : '') . (int)$order['routers'] . ' router x ' . (int)$order['years'] . ' year',
 		));
 		$ok = isset($r['status_code'], $r['status']) && (string)$r['status_code'] == '200' && strtolower((string)$r['status']) == 'success';
 		$url = isset($r['payment_url']) ? (string)$r['payment_url'] : '';

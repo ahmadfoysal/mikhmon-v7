@@ -57,11 +57,17 @@ if (!defined('MKL_ROOT')) {
 				// ---- customer portal (portal/public) ----
 				'portal_db' => '',            // SQLite file, default: <parent of tenant_root>/portal.sqlite
 				'currency' => 'BDT',
-				'price_per_router' => 1000,   // price of one router for one year
+				// Packages sold in the portal: routers included and price for one year.
+				// 'support' is a free text line shown on the pricing card.
+				'packages' => array(
+					'starter' => array('routers' => 1, 'price' => 1200),
+					'business' => array('routers' => 3, 'price' => 3000, 'popular' => true),
+					'pro' => array('routers' => 10, 'price' => 7500),
+				),
+				'year_discount' => array(2 => 10, 3 => 15), // percent off when paying 2 or 3 years at once
 				'trial_days' => 7,            // free trial after registration (0 = none)
 				'trial_routers' => 1,
 				'require_verified' => true,   // with e-mail on: the trial starts when the address is confirmed
-				'max_routers_order' => 50,    // largest router count a customer can order online
 				'manual_payment' => '',       // instructions shown for manual payment (bKash/Nagad number ...)
 				'paystation_merchant' => '',  // PayStation merchantId ('' = online payment off)
 				'paystation_password' => '',
