@@ -24,6 +24,17 @@ if (!in_array($mkphost, array($mkpbase, 'www.' . $mkpbase, $mkpportal), true)) {
 	mkl_stop(404, 'Not found', 'This page does not exist.');
 }
 
+// files for search engines: answered before any session is started
+$p = isset($_GET['p']) && is_string($_GET['p']) ? $_GET['p'] : '';
+if ($p == 'robots' || $p == 'sitemap') {
+	require_once(__DIR__ . '/../src/lang.php');
+	require_once(__DIR__ . '/../src/views_landing.php');
+	require_once(__DIR__ . '/../src/seo.php');
+	$_SESSION = array();
+	$p == 'robots' ? mkp_robots_txt() : mkp_sitemap_xml();
+	exit;
+}
+
 $mkpsecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off')
 	|| (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https');
 session_name('MKLPORTAL');
@@ -31,6 +42,10 @@ session_name('MKLPORTAL');
 session_set_cookie_params(array('lifetime' => 0, 'path' => '/', 'secure' => $mkpsecure, 'httponly' => true, 'samesite' => 'Lax'));
 session_start();
 header('X-Frame-Options: DENY');
+if ($p !== '') {
+	// only the landing page belongs in search results
+	header('X-Robots-Tag: noindex, nofollow');
+}
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: same-origin');
 
@@ -74,6 +89,10 @@ if (substr($p, 0, 5) == 'admin' && (!$u || !$u['is_admin'])) {
 
 switch ($p) {
 	case '':
+		// /?hl=bn is the Bangla address of the landing page (search engines index both)
+		if (isset($_GET['hl']) && in_array($_GET['hl'], array('en', 'bn'), true)) {
+			$_SESSION['lang'] = $_GET['hl'];
+		}
 		echo v_home();
 		break;
 
@@ -87,6 +106,10 @@ switch ($p) {
 		break;
 
 	case 'register':
+		// package chosen on the landing page: preselected on the billing page later
+		if (isset($_GET['plan']) && is_string($_GET['plan']) && mkp_package($_GET['plan'])) {
+			$_SESSION['want_plan'] = $_GET['plan'];
+		}
 		if ($post) {
 			// at most 5 new accounts per hour from one address (only created accounts count)
 			if (!mkp_throttle('reg|' . mkp_ip(), 5, 3600, false)) {
@@ -223,11 +246,12 @@ switch ($p) {
 				break;
 			}
 			$note = mkp_post('manual_method', 30) . ' ' . mkp_post('manual_sender', 30);
-			list($oid, $err) = mkp_order_create($u, mkp_post('routers', 5), mkp_post('years', 2), 'manual', trim($note), mkp_post('manual_trx', 60));
+			list($oid, $err) = mkp_order_create($u, mkp_post('package', 20), mkp_post('years', 2), 'manual', trim($note), mkp_post('manual_trx', 60));
 			if ($err != '') {
 				echo v_billing($u, $err);
 				break;
 			}
+			unset($_SESSION['want_plan']);
 			mkp_mail_admin_order(mkp_row('SELECT * FROM orders WHERE id = ?', array($oid)), $u);
 			mkp_flash(t('manual_wait'));
 			mkp_redirect('billing');
@@ -235,7 +259,7 @@ switch ($p) {
 		if ($method != 'paystation' || !mkp_ps_enabled()) {
 			mkp_redirect('billing');
 		}
-		list($oid, $err) = mkp_order_create($u, mkp_post('routers', 5), mkp_post('years', 2), 'paystation');
+		list($oid, $err) = mkp_order_create($u, mkp_post('package', 20), mkp_post('years', 2), 'paystation');
 		if ($err != '') {
 			echo v_billing($u, $err);
 			break;
@@ -246,6 +270,7 @@ switch ($p) {
 			echo v_billing($u, t('err_pay_start', array($err)));
 			break;
 		}
+		unset($_SESSION['want_plan']);
 		header('Location: ' . $url);
 		exit;
 

@@ -38,3 +38,16 @@ form.inline{display:inline}
 ol{margin:0;padding-left:20px}
 footer{color:var(--mute);font-size:13px;padding:0 0 32px}
 @media(max-width:560px){h1{font-size:24px}.hero h1{font-size:26px}.card{padding:16px}}
+
+.pk-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-top:4px}
+.pk{display:block;cursor:pointer;margin:0;font-weight:400}
+.pk input{position:absolute;opacity:0;pointer-events:none}
+.pk-box{display:flex;flex-direction:column;gap:6px;height:100%;padding:16px;border:2px solid var(--line);border-radius:12px;background:#fff;transition:border-color .15s,box-shadow .15s}
+.pk:hover .pk-box{border-color:#9ccbe8}
+.pk input:checked+.pk-box{border-color:var(--brand);box-shadow:0 0 0 3px rgba(11,127,195,.15)}
+.pk input:focus-visible+.pk-box{outline:2px solid var(--brand);outline-offset:2px}
+.pk-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pk-top b{font-size:17px}
+.pk-r{color:var(--mute);font-size:14px}
+.pk-p{font-size:22px;font-weight:700}
+.pk-p small{font-size:14px;font-weight:400;color:var(--mute);margin-left:2px}

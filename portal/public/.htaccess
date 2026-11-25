@@ -1,0 +1,4 @@
+# Apache: serve robots.txt and sitemap.xml from index.php (nginx: see README)
+RewriteEngine On
+RewriteRule ^robots\.txt$ index.php?p=robots [L,QSA]
+RewriteRule ^sitemap\.xml$ index.php?p=sitemap [L,QSA]

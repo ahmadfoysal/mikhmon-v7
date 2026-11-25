@@ -21,13 +21,26 @@ return array(
 	// ---------------- customer portal (website root: portal/public) ----------------
 	'brand' => 'MikhmonLive',
 	'currency' => 'BDT',
-	'price_per_router' => 1000,     // one router, one year
+	// Packages: routers included and the price for one year. Change the numbers,
+	// add 'name' => 'My name' to rename one, or add more keys (a-z) for more packages.
+	'packages' => array(
+		'starter' => array('routers' => 1, 'price' => 1200),
+		'business' => array('routers' => 3, 'price' => 3000, 'popular' => true),
+		'pro' => array('routers' => 10, 'price' => 7500),
+	),
+	// percent off when paying 2 or 3 years at once
+	'year_discount' => array(2 => 10, 3 => 15),
 	'trial_days' => 7,              // 0 = no free trial: the account opens after the first payment
 	'trial_routers' => 1,
 	// With e-mail switched on, a new account stays closed until the customer confirms
 	// the address; the trial starts on that day. false = open at once.
 	'require_verified' => true,
 	'support_contact' => 'support@mikhmonlive.com',
+
+	// Search engines: paste the code of the HTML tag method from
+	// Google Search Console / Bing Webmaster Tools (only the content="..." value).
+	'google_site_verification' => '',
+	'bing_site_verification' => '',
 
 	// Manual payment: shown on the billing page; the customer sends the transaction ID
 	// and you approve the order in the portal (Admin). '' switches manual payment off.
