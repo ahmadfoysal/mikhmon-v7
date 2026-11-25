@@ -68,7 +68,16 @@ include_once('./lib/formatbytesbites.php');
 ?>
     
 <?php
-if ($id == "login" || substr($url, -1) == "p") {
+if ($id == "sso") {
+  // one-time login link from the customer portal
+  if (mkl_sso_check(isset($_GET['token']) ? $_GET['token'] : '')) {
+    session_regenerate_id(true);
+    $_SESSION["mikhmon"] = mkl_admin_user();
+    echo "<script>window.location='./admin.php?id=sessions'</script>";
+  } else {
+    echo "<script>window.location='./admin.php?id=login'</script>";
+  }
+} elseif ($id == "login" || substr($url, -1) == "p") {
 
   if (isset($_POST['login'])) {
     $user = $_POST['user'];

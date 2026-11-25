@@ -53,6 +53,28 @@ if (!defined('MKL_ROOT')) {
 				'portal_url' => '',    // where customers register / renew
 				'private_nets' => array(), // private networks routers may be reached on, e.g. the VPN: array('10.99.0.0/16')
 				'brand' => 'MikhmonLive',
+
+				// ---- customer portal (portal/public) ----
+				'portal_db' => '',            // SQLite file, default: <parent of tenant_root>/portal.sqlite
+				'currency' => 'BDT',
+				'price_per_router' => 1000,   // price of one router for one year
+				'trial_days' => 7,            // free trial after registration (0 = none)
+				'trial_routers' => 1,
+				'max_routers_order' => 50,    // largest router count a customer can order online
+				'manual_payment' => '',       // instructions shown for manual payment (bKash/Nagad number ...)
+				'paystation_merchant' => '',  // PayStation merchantId ('' = online payment off)
+				'paystation_password' => '',
+				'paystation_sandbox' => false,
+				'paystation_url' => '',       // override the API base URL (tests)
+				'support_contact' => '',
+
+				// ---- VPN onboarding (tools/vpn/install.sh) ----
+				'vpn_host' => '',             // public name of the VPN server, e.g. vpn.mikhmonlive.com ('' = VPN off)
+				'vpn_server_ip' => '10.99.0.1',
+				'vpn_wg_net' => '10.99.0.0/17',     // WireGuard clients (RouterOS v7)
+				'vpn_l2tp_net' => '10.99.128.0/17', // L2TP/IPsec clients (RouterOS v6)
+				'vpn_wg_port' => 51820,
+				'vpn_state_dir' => '',        // default: <parent of tenant_root>/vpn
 			);
 			$file = MKL_ROOT . '/include/site.php';
 			if (is_file($file)) {
@@ -497,6 +519,65 @@ if (!defined('MKL_ROOT')) {
 		}, $dir);
 	}
 
+	/** Store an existing password hash (the portal reuses the customer's hash). */
+	function mkl_admin_set_hash($user, $hash, $dir = null)
+	{
+		$user = trim((string)$user);
+		return mkl_store_update(function ($cfg) use ($user, $hash) {
+			if ($user != '') {
+				$cfg['admin']['user'] = $user;
+			}
+			if ((string)$hash != '') {
+				$cfg['admin']['hash'] = (string)$hash;
+			}
+			return $cfg;
+		}, $dir);
+	}
+
+	/* ------------------------------------------------------------------ */
+	/*  Single sign-on from the portal                                     */
+	/* ------------------------------------------------------------------ */
+
+	function mkl_b64u($bin)
+	{
+		return rtrim(strtr(base64_encode($bin), '+/', '-_'), '=');
+	}
+
+	/** One-time login token for a tenant, valid for one minute. */
+	function mkl_sso_make($tenant)
+	{
+		$body = mkl_b64u(json_encode(array('t' => (string)$tenant, 'e' => time() + 60, 'n' => bin2hex(random_bytes(12)))));
+		return $body . '.' . mkl_b64u(hash_hmac('sha256', 'sso|' . $body, mkl_key(), true));
+	}
+
+	/** True when the token was issued for the current tenant and not used before. */
+	function mkl_sso_check($token)
+	{
+		$parts = explode('.', (string)$token);
+		if (count($parts) != 2 || !hash_equals(mkl_b64u(hash_hmac('sha256', 'sso|' . $parts[0], mkl_key(), true)), $parts[1])) {
+			return false;
+		}
+		$d = json_decode((string)base64_decode(strtr($parts[0], '-_', '+/')), true);
+		if (!is_array($d) || !isset($d['t'], $d['e'], $d['n']) || $d['t'] !== MKL_TENANT || MKL_TENANT === '' || (int)$d['e'] < time()) {
+			return false;
+		}
+		if (!preg_match('/^[0-9a-f]{24}$/', (string)$d['n'])) {
+			return false;
+		}
+		foreach ((array)glob(MKL_DATA . '/.sso-*') as $old) {
+			if (filemtime($old) < time() - 300) {
+				@unlink($old);
+			}
+		}
+		// "x" mode fails when the file exists: each token works once
+		$f = @fopen(MKL_DATA . '/.sso-' . $d['n'], 'x');
+		if (!$f) {
+			return false;
+		}
+		fclose($f);
+		return true;
+	}
+
 	/** Seconds the client still has to wait after too many failed logins. */
 	function mkl_login_wait()
 	{
@@ -687,6 +768,11 @@ if (!defined('MKL_ROOT')) {
 		$ip = filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? $host : gethostbyname($host);
 		if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
 			return '';
+		}
+		// VPN addresses that belong to this customer's own routers
+		$t = mkl_tenant_info();
+		if (isset($t['vpn_ips']) && is_array($t['vpn_ips']) && in_array($ip, $t['vpn_ips'], true)) {
+			return $ip;
 		}
 		foreach ((array)mkl_site('private_nets') as $cidr) {
 			if (mkl_ip_in_cidr($ip, $cidr)) {

@@ -18,6 +18,28 @@ return array(
 	// refused unless listed here, e.g. the VPN network your routers dial in to.
 	// 'private_nets' => array('10.99.0.0/16'),
 
+	// ---------------- customer portal (website root: portal/public) ----------------
+	'brand' => 'MikhmonLive',
+	'currency' => 'BDT',
+	'price_per_router' => 1000,     // one router, one year
+	'trial_days' => 7,              // 0 = no free trial: the account opens after the first payment
+	'trial_routers' => 1,
+	'support_contact' => 'support@mikhmonlive.com',
+
+	// Manual payment: shown on the billing page; the customer sends the transaction ID
+	// and you approve the order in the portal (Admin). '' switches manual payment off.
+	'manual_payment' => "bKash / Nagad (Send Money): 01XXXXXXXXX",
+
+	// PayStation online payment. Leave the merchant empty to switch it off.
+	// Set the IPN URL in the PayStation panel to: https://mikhmonlive.com/?p=pay-ipn
+	'paystation_merchant' => '',
+	'paystation_password' => '',
+	'paystation_sandbox' => false,
+
+	// ---------------- VPN onboarding (after tools/vpn/install.sh) ----------------
+	// Public DNS name of this server for the router tunnels. '' = VPN page off.
+	'vpn_host' => '',
+
 	// Secret key used to encrypt router passwords. Default: <tenant_root>/.mkl-key.php
 	// 'key_file' => '/www/mikhmon-data/mkl-key.php',
 );
